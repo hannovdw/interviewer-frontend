@@ -1,9 +1,18 @@
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
-import Alert from 'react-bootstrap/Alert';
+import Alert from "react-bootstrap/Alert";
+import { AiOutlineEdit, AiOutlineDelete, AiOutlineArrowLeft } from 'react-icons/ai';
 
-export default function AddCandidate() {
+export default function Candidate() {
   const router = useRouter();
+  const { id } = router.query;
+
+  const [isError, setIsError] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const [candidate, setCandidate] = useState({});
+  const [error, setError] = useState(null);
 
   const [state, setState] = useState({
     firstName: "",
@@ -12,9 +21,6 @@ export default function AddCandidate() {
     cellphoneNumber: "",
   });
 
-  const [isError, setIsError] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-
   function handleChange(e) {
     const copy = { ...state };
     copy[e.target.name] = e.target.value;
@@ -22,8 +28,8 @@ export default function AddCandidate() {
   }
 
   async function handleSubmit() {
-    const res = await fetch(`http://localhost:8080/api/v1/candidates`, {
-      method: "POST",
+    const res = await fetch(`http://localhost:8080/api/v1/candidates/${id}`, {
+      method: "PUT",
       body: JSON.stringify(state),
       headers: {
         "Content-Type": "application/json",
@@ -41,6 +47,35 @@ export default function AddCandidate() {
       setIsError(true);
     }
   }
+
+  useEffect(() => {
+    async function fetchCandidate() {
+      try {
+        const response = await fetch(`http://localhost:8080/api/v1/candidates/${id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem("token"),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch Candidate");
+        }
+
+        const data = await response.json();
+        setCandidate(data);
+
+        setState({ ...state, ...data });
+      } catch (error) {
+        setError(error.message);
+      }
+    }
+
+    if (id) {
+      fetchCandidate();
+    }
+  }, [id]);
 
   return (
     <div>
@@ -60,7 +95,6 @@ export default function AddCandidate() {
             <input
               name="firstName"
               className="form-control mt-1"
-              placeholder="Enter First Name"
               value={state.firstName}
               onChange={handleChange}
             />
@@ -72,7 +106,6 @@ export default function AddCandidate() {
             <input
               name="lastName"
               className="form-control mt-1"
-              placeholder="Enter Last Name"
               value={state.lastName}
               onChange={handleChange}
             />
@@ -85,7 +118,6 @@ export default function AddCandidate() {
               type="email"
               name="email"
               className="form-control mt-1"
-              placeholder="Enter email"
               value={state.email}
               onChange={handleChange}
             />
@@ -97,7 +129,6 @@ export default function AddCandidate() {
             <input
               name="cellphoneNumber"
               className="form-control mt-1"
-              placeholder="Enter Cellphone Number"
               value={state.cellphoneNumber}
               onChange={handleChange}
             />
@@ -107,7 +138,7 @@ export default function AddCandidate() {
           <div className="d-grid gap-2 mt-3">
             <br />
             <button type="submit" className="btn btn-primary" onClick={handleSubmit}>
-              Add
+              Update
             </button>
           </div>
 
@@ -140,5 +171,6 @@ export default function AddCandidate() {
         </div>
       </div>
     </div>
+
   );
 }

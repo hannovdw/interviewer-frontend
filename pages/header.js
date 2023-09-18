@@ -28,7 +28,7 @@ export default function Header(props) {
 
             <Nav.Link href="/overview">Overview</Nav.Link>
             <Nav.Link href="/overview">Interviews</Nav.Link>
-            <Nav.Link href="/candidates/add">Candidates</Nav.Link>
+            <Nav.Link href="/candidates/candidates">Candidates</Nav.Link>
             <Nav.Link href="/overview">Employees</Nav.Link>
             <Nav.Link href="/overview">Templates</Nav.Link>
 

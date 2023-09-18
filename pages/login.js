@@ -1,19 +1,21 @@
-import { useRouter } from "next/router"
-import { useState } from "react"
-import Image from "next/image"
+import { useRouter } from "next/router";
+import { useState } from "react";
+import Image from "next/image";
 
 export default function SignIn() {
-  const router = useRouter()
+  const router = useRouter();
 
   const [state, setState] = useState({
     email: "",
     password: ""
-  })
+  });
+
+  const [isError, setIsError] = useState(false);
 
   function handleChange(e) {
-    const copy = { ...state }
-    copy[e.target.name] = e.target.value
-    setState(copy)
+    const copy = { ...state };
+    copy[e.target.name] = e.target.value;
+    setState(copy);
   }
 
   async function authenticate() {
@@ -23,38 +25,38 @@ export default function SignIn() {
       headers: {
         "Content-Type": "application/json"
       }
-    })
+    });
+
     if (res.ok) {
-      const json = await res.json()
-      localStorage.setItem("token", json.access_token)
-      router.push("/overview")
+      const json = await res.json();
+      localStorage.setItem("token", json.access_token);
+      setIsError(false); // Clear any previous errors
+      // Redirect directly to the overview page on successful login
+      router.push("/overview");
     } else {
-      alert("Bad credentials")
+      setIsError(true); // Set an error flag
     }
   }
 
   return (
-    
     <div>
       <br />
       <br />
       <div className="col-md-3 m-auto Auth-form-container border">
-
         <div className="Auth-form-content p-5 bg-light">
-
-          <div class="container">
-            <div class="row">
-              <Image
-                src="/../public/logolong.png"
-                width={300}
-                height={100}
-                alt="Logo"
-                class="img-fluid center-block"
-                className="center"
-              />
+          <div className="container">
+            <div className="row">
+              <div className="col text-center">
+                <Image
+                  src="/../public/logolong.png"
+                  width={300}
+                  height={100}
+                  alt="Logo"
+                  className="img-fluid center-block"
+                />
+              </div>
             </div>
           </div>
-
           <br />
           <div className="form-group">
             <label>Email address</label>
@@ -63,7 +65,7 @@ export default function SignIn() {
               name="email"
               className="form-control mt-1"
               placeholder="Enter email"
-              value={state.username}
+              value={state.email}
               onChange={handleChange}
             />
           </div>
@@ -74,7 +76,7 @@ export default function SignIn() {
               type="password"
               name="password"
               className="form-control mt-1"
-              placeholder="Enter email"
+              placeholder="Enter password"
               value={state.password}
               onChange={handleChange}
             />
@@ -88,15 +90,18 @@ export default function SignIn() {
 
           <br />
 
-          <div class="text-center">
+          <div className="text-center">
             <p>Not a member? <a href="/register">Register</a></p>
           </div>
 
+          {/* Error Alert */}
+          {isError && (
+            <div className="alert alert-danger mt-3">
+              <h6 className="text-center">Bad credentials</h6>
+            </div>
+          )}
         </div>
-
       </div>
-    
     </div>
-
-  )
+  );
 }
