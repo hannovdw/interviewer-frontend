@@ -68,6 +68,7 @@ export default function Candidate() {
 
         setState({ ...state, ...data });
       } catch (error) {
+        console.error(error.message)
         setError(error.message);
       }
     }

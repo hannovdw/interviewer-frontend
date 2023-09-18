@@ -66,6 +66,7 @@ export default function Candidate() {
         const data = await response.json();
         setCandidate(data);
       } catch (error) {
+        console.error(error.message)
         setError(error.message);
       }
     }
@@ -91,6 +92,7 @@ export default function Candidate() {
 
       router.push("/candidates/candidates");
     } catch (error) {
+      console.error(error.message)
       setError(error.message);
     }
   };
