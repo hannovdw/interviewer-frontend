@@ -1,18 +1,15 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Alert from 'react-bootstrap/Alert';
 
-export default function Register() {
+export default function AddCandidate() {
   const router = useRouter();
 
   const [state, setState] = useState({
-    firstname: "",
-    lastname: "",
+    firstName: "",
+    lastName: "",
     email: "",
-    password: "",
-    titleId: "3",
-    role: "ADMIN"
+    cellphoneNumber: "",
   });
 
   const [isError, setIsError] = useState(false);
@@ -25,23 +22,23 @@ export default function Register() {
   }
 
   async function handleSubmit() {
-    const res = await fetch(`http://localhost:8080/api/v1/auth/register`, {
+    const res = await fetch(`http://localhost:8080/api/v1/candidates`, {
       method: "POST",
       body: JSON.stringify(state),
       headers: {
-        "Content-Type": "application/json"
-      }
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("token"),
+      },
     });
 
     if (res.ok) {
-      setIsError(false); // Clear any previous errors
-      setIsSuccess(true); // Display a success message
+      setIsSuccess(true);
+      setIsError(false);
       setTimeout(() => {
-        setIsSuccess(false); // Hide the success message after 2 seconds
-        router.push("/login");
-      }, 2000);
+        setIsSuccess(false);
+      }, 3000);
     } else {
-      setIsError(true); // Set an error flag
+      setIsError(true);
     }
   }
 
@@ -49,21 +46,39 @@ export default function Register() {
     <div>
       <br />
       <br />
+
       <div className="col-md-3 m-auto Auth-form-container border">
         <div className="Auth-form-content p-5 bg-light">
-          <div className="container">
-            <div className="row">
-              <div className="col text-center">
-                <Image
-                  src="/../public/logolong.png"
-                  width={300}
-                  height={100}
-                  alt="Logo"
-                  className="img-fluid center-block"
-                />
-              </div>
-            </div>
+          <div className="form-group mt-3">
+            <h2 className="text-center">Add Candidate</h2>
+            <br />
           </div>
+
+          {/* First Name */}
+          <div className="form-group mt-3">
+            <label>First Name</label>
+            <input
+              name="firstName"
+              className="form-control mt-1"
+              placeholder="Enter First Name"
+              value={state.firstName}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Last Name */}
+          <div className="form-group mt-3">
+            <label>Last Name</label>
+            <input
+              name="lastName"
+              className="form-control mt-1"
+              placeholder="Enter Last Name"
+              value={state.lastName}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Email */}
           <div className="form-group mt-3">
             <label>Email address</label>
             <input
@@ -75,57 +90,53 @@ export default function Register() {
               onChange={handleChange}
             />
           </div>
+
+          {/* Cellphone Number */}
           <div className="form-group mt-3">
-            <label>First Name</label>
+            <label>Cellphone Number</label>
             <input
-              name="firstname"
+              name="cellphoneNumber"
               className="form-control mt-1"
-              placeholder="Enter First Name"
-              value={state.firstname}
+              placeholder="Enter Cellphone Number"
+              value={state.cellphoneNumber}
               onChange={handleChange}
             />
           </div>
-          <div className="form-group mt-3">
-            <label>Last Name</label>
-            <input
-              name="lastname"
-              className="form-control mt-1"
-              placeholder="Enter Last Name"
-              value={state.lastname}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="form-group mt-3">
-            <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              className="form-control mt-1"
-              placeholder="Enter Password"
-              value={state.password}
-              onChange={handleChange}
-            />
-          </div>
+
+          {/* Submit Button */}
           <div className="d-grid gap-2 mt-3">
+            <br />
             <button type="submit" className="btn btn-primary" onClick={handleSubmit}>
-              Sign Up
+              Add
             </button>
           </div>
-          <div className="text-center">
-            <p>Already a member? <a href="/login">Sign In</a></p>
+
+
+          {/* Button to go back to /candidates */}
+          <div className="d-grid gap-2 mt-3">
+            <br />
+            <button
+              className="btn btn-secondary"
+              onClick={() => router.push('/candidates/candidates')}
+            >
+              Back to Candidates
+            </button>
           </div>
+
           {/* Success Alert */}
           {isSuccess && (
             <Alert key={'success'} variant={'success'}>
-              <h6 className="text-center">Registration successful</h6>
+              <h6 className="text-center">Success</h6>
             </Alert>
           )}
+
           {/* Error Alert */}
           {isError && (
             <Alert key={'error'} variant={'danger'}>
-              <h6 className="text-center">Registration failed</h6>
+              <h6 className="text-center">Error</h6>
             </Alert>
           )}
+
         </div>
       </div>
     </div>

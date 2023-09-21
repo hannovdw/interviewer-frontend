@@ -27,9 +27,9 @@ export default function Header(props) {
           <Nav className="me-auto">
 
             <Nav.Link href="/overview">Overview</Nav.Link>
-            <Nav.Link href="/overview">Interviews</Nav.Link>
+            <Nav.Link href="/interviews/interviews">Interviews</Nav.Link>
             <Nav.Link href="/candidates/candidates">Candidates</Nav.Link>
-            <Nav.Link href="/overview">Employees</Nav.Link>
+            <Nav.Link href="/employees/employees">Employees</Nav.Link>
             <Nav.Link href="/overview">Templates</Nav.Link>
 
             {/* <NavDropdown title="Interviews" id="collasible-nav-dropdown">

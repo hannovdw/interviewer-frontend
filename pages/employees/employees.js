@@ -5,9 +5,9 @@ import Alert from "react-bootstrap/Alert";
 import { AiOutlineEdit, AiOutlineDelete, AiOutlineSearch, AiOutlinePlus } from 'react-icons/ai';
 import Spinner from "react-bootstrap/Spinner";
 
-export default function Candidates() {
+export default function Employees() {
 
-  const [candidates, setCandidates] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,14 +17,14 @@ export default function Candidates() {
 
   const router = useRouter();
 
-  async function fetchCandidates(query = "", page = 0, size = 10) {
+  async function fetchEmployees(query = "", page = 0, size = 10) {
     try {
       setSearching(true);
       setLoading(true);
 
       const endpoint = query
-        ? `http://localhost:8080/api/v1/candidates/search?query=${query}&page=${page}&size=${size}`
-        : `http://localhost:8080/api/v1/candidates?page=${page}&size=${size}`;
+        ? `http://localhost:8080/api/v1/users/search?query=${query}&page=${page}&size=${size}`
+        : `http://localhost:8080/api/v1/users?page=${page}&size=${size}`;
 
       const response = await fetch(endpoint, {
         method: "GET",
@@ -35,12 +35,12 @@ export default function Candidates() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch Candidates");
+        throw new Error("Failed to fetch Employees");
       }
 
       const data = await response.json();
-      setCandidates(data.content); // Set the list of candidates
-      setTotalPages(data.totalPages); // Set the total number of pages
+      setEmployees(data.content);
+      setTotalPages(data.totalPages);
     } catch (error) {
       console.error(error.message);
       setError(error.message);
@@ -51,12 +51,12 @@ export default function Candidates() {
   }
 
   useEffect(() => {
-    fetchCandidates();
+    fetchEmployees();
   }, []);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
-    fetchCandidates(searchQuery, newPage, 10); // Fetch data for the new page
+    fetchEmployees(searchQuery, newPage, 10);
   };
 
   const handleSearchInputChange = (event) => {
@@ -65,12 +65,12 @@ export default function Candidates() {
 
   const handleSearchButtonClick = () => {
     // Trigger the search when the search button is clicked
-    fetchCandidates(searchQuery);
+    fetchEmployees(searchQuery);
   };
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/candidates/${id}`, {
+      const response = await fetch(`http://localhost:8080/api/v1/employees/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -79,10 +79,10 @@ export default function Candidates() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete Candidate");
+        throw new Error("Failed to delete Employee");
       }
 
-      router.reload("/candidates/candidates");
+      router.reload("/employees/employees");
     } catch (error) {
       console.error(error.message);
       setError(error.message);
@@ -92,19 +92,14 @@ export default function Candidates() {
   return (
     <div className="container mt-5" style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '10px' }}>
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1>Candidates</h1>
-        <Link href="/candidates/add">
-          <button className="btn btn-primary">
-            <AiOutlinePlus size={16} /> Add
-          </button>
-        </Link>
+        <h1>Employees</h1>
       </div>
 
       <div className="input-group mb-3">
         <input
           type="text"
           className="form-control form-control-sm"
-          placeholder="Search candidates"
+          placeholder="Search employees"
           value={searchQuery}
           onChange={handleSearchInputChange}
         />
@@ -126,22 +121,22 @@ export default function Candidates() {
       {error && <Alert variant="danger">{error}</Alert>}
 
       <ul className="list-group">
-        {candidates.map((candidate) => (
-          <li key={candidate.id} className="list-group-item">
+        {employees.map((employee) => (
+          <li key={employee.id} className="list-group-item">
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <h5>{candidate.firstName} {candidate.lastName}</h5>
-                <p>Email: {candidate.email}</p>
-                <p>Cellphone Number: {candidate.cellphoneNumber}</p>
+                <h5>{employee.firstname} {employee.lastname}</h5>
+                <p>Email: {employee.email}</p>
+                <p>Cellphone Number: {employee.cellphoneNumber}</p>
               </div>
               <div>
-                <Link href={`/candidates/${candidate.id}`} className="btn btn-info btn-sm me-2">
+                <Link href={`/employees/${employee.id}`} className="btn btn-info btn-sm me-2">
                   <AiOutlineSearch size={16} /> Details
                 </Link>
-                <Link href={`/candidates/edit/${candidate.id}`} className="btn btn-success btn-sm me-2">
+                <Link href={`/employees/edit/${employee.id}`} className="btn btn-success btn-sm me-2">
                   <AiOutlineEdit size={16} /> Edit
                 </Link>
-                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(candidate.id)}>
+                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(employee.id)}>
                   <AiOutlineDelete size={16} /> Delete
                 </button>
               </div>
