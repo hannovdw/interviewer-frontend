@@ -131,7 +131,7 @@ export default function Interviews() {
             <div className="d-flex justify-content-between align-items-center">
               <div>
                 <h5>{interview.candidate.firstName} {interview.candidate.lastName}</h5>
-                <p>{interview.title}</p>
+                <p>{interview.title.titleName}</p>
                 <p>{interview.date}</p>
                 <p>{interview.time}</p>
               </div>

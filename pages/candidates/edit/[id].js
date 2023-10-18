@@ -5,15 +5,14 @@ import Alert from "react-bootstrap/Alert";
 import { AiOutlineEdit, AiOutlineDelete, AiOutlineArrowLeft } from 'react-icons/ai';
 
 export default function Candidate() {
+
   const router = useRouter();
   const { id } = router.query;
 
   const [isError, setIsError] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
-  const [candidate, setCandidate] = useState({});
   const [error, setError] = useState(null);
-
+  const [isSubmitClicked, setIsSubmitClicked] = useState(false);
   const [state, setState] = useState({
     firstName: "",
     lastName: "",
@@ -25,9 +24,23 @@ export default function Candidate() {
     const copy = { ...state };
     copy[e.target.name] = e.target.value;
     setState(copy);
+    setIsSubmitClicked(false);
   }
 
   async function handleSubmit() {
+
+    setIsSubmitClicked(true);
+    if (
+      state.firstName.trim() === "" ||
+      state.lastName.trim() === "" ||
+      state.email.trim() === "" ||
+      state.cellphoneNumber.trim() === ""
+    ) {
+      setIsError(true);
+      setError("Please enter required fields.");
+      return;
+    }
+
     const res = await fetch(`http://localhost:8080/api/v1/candidates/${id}`, {
       method: "PUT",
       body: JSON.stringify(state),
@@ -40,11 +53,15 @@ export default function Candidate() {
     if (res.ok) {
       setIsSuccess(true);
       setIsError(false);
+      setIsSubmitClicked(false);
       setTimeout(() => {
         setIsSuccess(false);
-      }, 3000);
+        router.push('/candidates/candidates');
+      }, 1500);
     } else {
+      const responseBody = await res.json();
       setIsError(true);
+      setError(responseBody.error);
     }
   }
 
@@ -64,7 +81,6 @@ export default function Candidate() {
         }
 
         const data = await response.json();
-        setCandidate(data);
 
         setState({ ...state, ...data });
       } catch (error) {
@@ -86,9 +102,23 @@ export default function Candidate() {
       <div className="col-md-3 m-auto Auth-form-container border">
         <div className="Auth-form-content p-5 bg-light">
           <div className="form-group mt-3">
-            <h2 className="text-center">Add Candidate</h2>
+            <h2 className="text-center">Edit Candidate</h2>
             <br />
           </div>
+
+          {/* Success Alert */}
+          {isSuccess && (
+            <Alert key={'success'} variant={'success'}>
+              <h6 className="text-center">Success</h6>
+            </Alert>
+          )}
+
+          {/* Error Alert */}
+          {isError && (
+            <Alert key={'error'} variant={'danger'}>
+              <h6 className="text-center">{error}</h6>
+            </Alert>
+          )}
 
           {/* First Name */}
           <div className="form-group mt-3">
@@ -98,6 +128,7 @@ export default function Candidate() {
               className="form-control mt-1"
               value={state.firstName}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.firstName.trim() === "" ? "red" : "" }}
             />
           </div>
 
@@ -109,6 +140,7 @@ export default function Candidate() {
               className="form-control mt-1"
               value={state.lastName}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.lastName.trim() === "" ? "red" : "" }}
             />
           </div>
 
@@ -121,6 +153,7 @@ export default function Candidate() {
               className="form-control mt-1"
               value={state.email}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.email.trim() === "" ? "red" : "" }}
             />
           </div>
 
@@ -132,6 +165,7 @@ export default function Candidate() {
               className="form-control mt-1"
               value={state.cellphoneNumber}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.cellphoneNumber.trim() === "" ? "red" : "" }}
             />
           </div>
 
@@ -154,20 +188,6 @@ export default function Candidate() {
               Back to Candidates
             </button>
           </div>
-
-          {/* Success Alert */}
-          {isSuccess && (
-            <Alert key={'success'} variant={'success'}>
-              <h6 className="text-center">Success</h6>
-            </Alert>
-          )}
-
-          {/* Error Alert */}
-          {isError && (
-            <Alert key={'error'} variant={'danger'}>
-              <h6 className="text-center">Error</h6>
-            </Alert>
-          )}
 
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
+import Modal from "react-bootstrap/Modal";
 import Alert from 'react-bootstrap/Alert';
 
 export default function AddCandidate() {
@@ -12,16 +13,38 @@ export default function AddCandidate() {
     cellphoneNumber: "",
   });
 
+  const [initialState] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    cellphoneNumber: "",
+  });
+
   const [isError, setIsError] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitClicked, setIsSubmitClicked] = useState(false);
 
   function handleChange(e) {
     const copy = { ...state };
     copy[e.target.name] = e.target.value;
     setState(copy);
+    setIsSubmitClicked(false);
   }
 
   async function handleSubmit() {
+    setIsSubmitClicked(true);
+    if (
+      state.firstName.trim() === "" ||
+      state.lastName.trim() === "" ||
+      state.email.trim() === "" ||
+      state.cellphoneNumber.trim() === ""
+    ) {
+      setIsError(true);
+      setError("Please enter required fields.");
+      return;
+    }
+
     const res = await fetch(`http://localhost:8080/api/v1/candidates`, {
       method: "POST",
       body: JSON.stringify(state),
@@ -33,12 +56,16 @@ export default function AddCandidate() {
 
     if (res.ok) {
       setIsSuccess(true);
+      setState(initialState);
       setIsError(false);
+      setIsSubmitClicked(false);
       setTimeout(() => {
         setIsSuccess(false);
       }, 3000);
     } else {
+      const responseBody = await res.json();
       setIsError(true);
+      setError(responseBody.error);
     }
   }
 
@@ -55,51 +82,55 @@ export default function AddCandidate() {
           </div>
 
           {/* First Name */}
-          <div className="form-group mt-3">
+          <div className={`form-group mt-3`}>
             <label>First Name</label>
             <input
               name="firstName"
-              className="form-control mt-1"
+              className={`form-control mt-1`}
               placeholder="Enter First Name"
               value={state.firstName}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.firstName.trim() === "" ? "red" : "" }}
             />
           </div>
 
           {/* Last Name */}
-          <div className="form-group mt-3">
+          <div className={`form-group mt-3`}>
             <label>Last Name</label>
             <input
               name="lastName"
-              className="form-control mt-1"
+              className={`form-control mt-1`}
               placeholder="Enter Last Name"
               value={state.lastName}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.lastName.trim() === "" ? "red" : "" }}
             />
           </div>
 
           {/* Email */}
-          <div className="form-group mt-3">
+          <div className={`form-group mt-3`}>
             <label>Email address</label>
             <input
               type="email"
               name="email"
-              className="form-control mt-1"
+              className={`form-control mt-1`}
               placeholder="Enter email"
               value={state.email}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.email.trim() === "" ? "red" : "" }}
             />
           </div>
 
           {/* Cellphone Number */}
-          <div className="form-group mt-3">
+          <div className={`form-group mt-3`}>
             <label>Cellphone Number</label>
             <input
               name="cellphoneNumber"
-              className="form-control mt-1"
+              className={`form-control mt-1`}
               placeholder="Enter Cellphone Number"
               value={state.cellphoneNumber}
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && state.cellphoneNumber.trim() === "" ? "red" : "" }}
             />
           </div>
 
@@ -114,7 +145,6 @@ export default function AddCandidate() {
 
           {/* Button to go back to /candidates */}
           <div className="d-grid gap-2 mt-3">
-            <br />
             <button
               className="btn btn-secondary"
               onClick={() => router.push('/candidates/candidates')}
@@ -123,6 +153,7 @@ export default function AddCandidate() {
             </button>
           </div>
 
+          <br />
           {/* Success Alert */}
           {isSuccess && (
             <Alert key={'success'} variant={'success'}>
@@ -130,10 +161,11 @@ export default function AddCandidate() {
             </Alert>
           )}
 
+          <br />
           {/* Error Alert */}
           {isError && (
             <Alert key={'error'} variant={'danger'}>
-              <h6 className="text-center">Error</h6>
+              <h6 className="text-center">{error}</h6>
             </Alert>
           )}
 

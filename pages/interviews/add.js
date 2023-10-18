@@ -2,30 +2,85 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { AiOutlinePlus } from 'react-icons/ai';
 import { useState, useEffect } from "react";
+import { Form, Dropdown } from "react-bootstrap";
 import Alert from "react-bootstrap/Alert";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import Select from 'react-select';
+import makeAnimated from 'react-select/animated';
 
-export default function AddCandidate() {
+
+export default function AddInterview() {
   const router = useRouter();
 
   const [state, setState] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    cellphoneNumber: "",
+    title: {},
     interviewDate: new Date(),
     startTime: new Date(),
     endTime: new Date(),
+    candidateId: {},
+    employees: []
   });
 
   const [isError, setIsError] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [titles, setTitles] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [candidates, setCandidates] = useState([]);
+  const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
     fetchTitles();
-  }, []);
+    fetchCandidatesByQuery(searchQuery);
+    fetchEmployeesByQuery(searchQuery);
+  }, [searchQuery]);
+
+  async function fetchCandidatesByQuery(query) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/v1/candidates/search?query=${query}&page=0&size=10`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + localStorage.getItem("token"),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCandidates(data.content); // Assuming the response contains an array of candidates
+      } else {
+        console.error("Error fetching candidates");
+      }
+    } catch (error) {
+      console.error("Error fetching candidates", error);
+    }
+  }
+
+  async function fetchEmployeesByQuery(query) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/v1/users?page=0&size=10`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + localStorage.getItem("token"),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.content);
+      } else {
+        console.error("Error fetching employees");
+      }
+    } catch (error) {
+      console.error("Error fetching employees", error);
+    }
+  }
+
+  function handleSearchInputChangeCandidate(event) {
+    setSearchQuery(event);
+    fetchCandidatesByQuery(event);
+  }
 
   async function fetchTitles() {
     const res = await fetch(`http://localhost:8080/api/v1/titles`, {
@@ -48,11 +103,6 @@ export default function AddCandidate() {
     }
   }
 
-  function handleChange(e) {
-    const copy = { ...state };
-    copy[e.target.name] = e.target.value;
-    setState(copy);
-  }
 
   function handleDateChange(date) {
     setState({ ...state, interviewDate: date });
@@ -66,14 +116,40 @@ export default function AddCandidate() {
     setState({ ...state, endTime: date });
   }
 
-  function handleTitleChange(e) {
-    setState({ ...state, selectedTitle: e.target.value });
+  function handleTitleChange(selectedTitle) {
+    console.log(selectedTitle)
+    setState({ ...state, title: selectedTitle });
+  }
+
+  function handleCandidateChange(selectedCandidate) {
+    setState({ ...state, candidate: selectedCandidate });
+  }
+
+  function handleEmployeeChange(selectedEmployees) {
+    setState({ ...state, employees: selectedEmployees });
   }
 
   async function handleSubmit() {
+    const { interviewDate, startTime, title, candidate, employees } = state;
+
+    // Format date and time
+    const date = interviewDate.toISOString().split('T')[0];
+    const time = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Create the JSON body
+    const requestBody = {
+      date,
+      time,
+      title: { id: title.value }, // Assuming title is an object with a "value" property
+      candidate: { id: candidate.value }, // Assuming candidate is an object with a "value" property
+      users: employees.map((employee) => ({ id: employee.value })), // Map selected employees to an array of objects
+    };
+
+    console.log(requestBody)
+
     const res = await fetch(`http://localhost:8080/api/v1/interviews`, {
       method: "POST",
-      body: JSON.stringify(state),
+      body: JSON.stringify(requestBody),
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + localStorage.getItem("token"),
@@ -104,20 +180,54 @@ export default function AddCandidate() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="selectedTitle">Position</label>
-            <select
-              name="selectedTitle"
-              id="selectedTitle"
-              className="form-control"
+            <label htmlFor="searchQuery">Position</label>
+            <Select
+              value={state.title}
+              options={titles.map((title) => ({
+                value: title.id, // Assuming title.id is the ID of the title
+                label: title.titleName,
+              }))}
               onChange={handleTitleChange}
-              value={state.selectedTitle}
-            >
-              {titles.map((title) => (
-                <option key={title.id}>
-                  {title.title}
-                </option>
-              ))}
-            </select>
+              isClearable={true}
+              name="searchTitle"
+              id="searchTitle"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="searchQuery">Candidate</label>
+            <Select
+              selected={state.candidate}
+              options={candidates.map((candidate) => ({
+                value: candidate.id,
+                label: `${candidate.firstName} ${candidate.lastName}`,
+              }))}
+              onChange={handleCandidateChange}
+              isClearable={true} // Allow clearing the selection
+              isSearchable={true} // Enable search functionality
+              name="searchCandidate"
+              id="searchCandidate"
+              components={makeAnimated()} // Enable multi-select and other animations
+              onInputChange={handleSearchInputChangeCandidate}// Add this line for live search
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="searchQuery">Employees</label>
+            <Select
+              selected={state.employees}
+              options={employees.map((employee) => ({
+                value: employee.id,
+                label: `${employee.firstname} ${employee.lastname}`,
+              }))}
+              onChange={handleEmployeeChange}
+              isClearable={true} // Allow clearing the selection
+              isSearchable={true} // Enable search functionality
+              isMulti={true} // Allow multiple selections
+              name="searchEmployee"
+              id="searchEmployee"
+              components={makeAnimated()} // Enable multi-select and other animations
+            />
           </div>
 
           <div className="form-group">

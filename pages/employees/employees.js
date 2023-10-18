@@ -70,7 +70,7 @@ export default function Employees() {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/employees/${id}`, {
+      const response = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -127,14 +127,10 @@ export default function Employees() {
               <div>
                 <h5>{employee.firstname} {employee.lastname}</h5>
                 <p>Email: {employee.email}</p>
-                <p>Cellphone Number: {employee.cellphoneNumber}</p>
               </div>
               <div>
                 <Link href={`/employees/${employee.id}`} className="btn btn-info btn-sm me-2">
                   <AiOutlineSearch size={16} /> Details
-                </Link>
-                <Link href={`/employees/edit/${employee.id}`} className="btn btn-success btn-sm me-2">
-                  <AiOutlineEdit size={16} /> Edit
                 </Link>
                 <button className="btn btn-danger btn-sm" onClick={() => handleDelete(employee.id)}>
                   <AiOutlineDelete size={16} /> Delete

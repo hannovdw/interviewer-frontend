@@ -1,19 +1,29 @@
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import Link from "next/link";
 import Alert from "react-bootstrap/Alert";
-import { AiOutlineEdit, AiOutlineDelete, AiOutlineSearch, AiOutlinePlus } from 'react-icons/ai';
 import Spinner from "react-bootstrap/Spinner";
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
+import {
+  AiOutlineEdit,
+  AiOutlineDelete,
+  AiOutlineSearch,
+  AiOutlinePlus,
+} from "react-icons/ai";
 
 export default function Candidates() {
-
   const [candidates, setCandidates] = useState([]);
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [isError, setIsError] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
 
   const router = useRouter();
 
@@ -30,7 +40,7 @@ export default function Candidates() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer " + localStorage.getItem("token"),
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
 
@@ -69,24 +79,46 @@ export default function Candidates() {
   };
 
   const handleDelete = async (id) => {
-    try {
-      const response = await fetch(`http://localhost:8080/api/v1/candidates/${id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + localStorage.getItem("token"),
-        },
-      });
+    setSelectedCandidateId(id);
+    setShowDeleteConfirmation(true);
+  };
 
-      if (!response.ok) {
-        throw new Error("Failed to delete Candidate");
+  const confirmDelete = async () => {
+    setShowDeleteConfirmation(false);
+    if (selectedCandidateId) {
+      console.log(selectedCandidateId)
+      const res = await fetch(
+        `http://localhost:8080/api/v1/candidates/${selectedCandidateId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        }
+      );
+
+      if (res.ok) {
+        setIsSuccess(true);
+        setIsError(false);
+        setTimeout(() => {
+          setIsSuccess(false);
+          window.location.reload();
+        }, 1000);
+      } else {
+        const responseBody = await res.json();
+        setIsError(true);
+        setError(responseBody.error);
+        setTimeout(() => {
+          setIsError(false);
+        }, 3000);
       }
-
-      router.reload("/candidates/candidates");
-    } catch (error) {
-      console.error(error.message);
-      setError(error.message);
     }
+  };
+
+  const cancelDelete = () => {
+    setSelectedCandidateId(null);
+    setShowDeleteConfirmation(false);
   };
 
   return (
@@ -123,7 +155,17 @@ export default function Candidates() {
         </div>
       )}
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {isSuccess && (
+        <Alert key={'success'} variant={'success'}>
+          <h6 className="text-center">Success</h6>
+        </Alert>
+      )}
+
+      {isError && (
+        <Alert key={'error'} variant={'danger'}>
+          <h6 className="text-center">{error}</h6>
+        </Alert>
+      )}
 
       <ul className="list-group">
         {candidates.map((candidate) => (
@@ -176,6 +218,20 @@ export default function Candidates() {
         </ul>
       </div>
 
+      <Modal show={showDeleteConfirmation} onHide={cancelDelete}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Delete</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Are you sure you want to delete this candidate?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={cancelDelete}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
     </div>
   );
