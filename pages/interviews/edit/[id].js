@@ -13,17 +13,19 @@ export default function EditInterview() {
 
     const [isError, setIsError] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const [employees, setEmployees] = useState([]);
     const [titlesLoading, setTitlesLoading] = useState(true);
     const [titleOptions, setTitleOptions] = useState([]);
     const [candidatesLoading, setCandidatesLoading] = useState(true);
+    const [employeesLoading, setEmployeesLoading] = useState(true);
     const [candidatesOptions, setCandidatesOptions] = useState([]);
+    const [employeesOptions, setEmployeesOptions] = useState([]);
+    const [isSubmitClicked, setIsSubmitClicked] = useState(false);
 
     const [state, setState] = useState({
         title: {},
-        date: "",
-        time: "",
+        dateTime: "",
         candidate: {},
         users: []
     });
@@ -88,7 +90,7 @@ export default function EditInterview() {
 
     async function fetchEmployeesByQuery(query) {
         try {
-            const response = await fetch(`http://localhost:8080/api/v1/users?page=0&size=10`, {
+            const response = await fetch(`http://localhost:8080/api/v1/users/search?query=${query}&page=0&size=10`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -98,7 +100,13 @@ export default function EditInterview() {
 
             if (response.ok) {
                 const data = await response.json();
-                setEmployees(data.content);
+                var employeesOptions = data.content.map((employee) => ({
+                    value: employee.id,
+                    label: `${employee.firstname} ${employee.lastname}`
+                }))
+                setEmployeesOptions(employeesOptions)
+                setIsError(false);
+                setEmployeesLoading(false);
             } else {
                 console.error("Error fetching employees");
             }
@@ -110,6 +118,11 @@ export default function EditInterview() {
     function handleSearchInputChangeCandidate(event) {
         setSearchQuery(event);
         fetchCandidatesByQuery(event);
+    }
+
+    function handleSearchInputChangeEmployee(event) {
+        setSearchQuery(event);
+        fetchEmployeesByQuery(event);
     }
 
     async function fetchTitles() {
@@ -136,12 +149,8 @@ export default function EditInterview() {
     }
 
 
-    function handleDateChange(date) {
-        setState({ ...state, date: date });
-    }
-
-    function handleTimeChange(time) {
-        setState({ ...state, time: time });
+    function handleDateTimeChange(dateTime) {
+        setState({ ...state, dateTime: dateTime });
     }
 
     function handleTitleChange(selectedTitle) {
@@ -155,44 +164,59 @@ export default function EditInterview() {
     }
 
     function handleEmployeeChange(selectedEmployees) {
-        setState({ ...state, employees: selectedEmployees });
+        const users = selectedEmployees.map(emp => ({ id: emp.value }));
+        console.log(users);
+        setState({ ...state, users: users });
     }
 
     async function handleSubmit() {
+
         console.log(state);
-        // const { interviewDate, startTime, title, candidate, employees } = state;
 
-        // // Format date and time
-        // const date = interviewDate.toISOString().split('T')[0];
-        // const time = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setIsSubmitClicked(true);
 
-        // // Create the JSON body
-        // const requestBody = {
-        //     date,
-        //     time,
-        //     title: { id: title.value }, // Assuming title is an object with a "value" property
-        //     candidate: { id: candidate.value }, // Assuming candidate is an object with a "value" property
-        //     users: employees.map((employee) => ({ id: employee.value })), // Map selected employees to an array of objects
-        // };
-
-        // const res = await fetch(`http://localhost:8080/api/v1/interviews`, {
-        //     method: "POST",
-        //     body: JSON.stringify(requestBody),
-        //     headers: {
-        //         "Content-Type": "application/json",
-        //         Authorization: "Bearer " + localStorage.getItem("token"),
-        //     },
-        // });
-
-        // if (res.ok) {
-        //     setIsSuccess(true);
-        //     setIsError(false);
-        //     setTimeout(() => {
-        //         setIsSuccess(false);
-        //     }, 3000);
-        // } else {
+        // if (
+        //     state.dateTime.trim() === ""
+        // ) {
         //     setIsError(true);
+        //     setError("Please enter required fields.");
+        //     return;
         // }
+
+        const requestBody = JSON.stringify({
+            "id": state.id,
+            "dateTime": state.dateTime,
+            "title": {
+                "id": state.title.id
+            },
+            "candidate": {
+                "id": state.candidate.id
+            },
+            "users": state.users.map(user => ({ "id": user.id }))
+        });
+
+        console.log(requestBody);
+
+        const res = await fetch(`http://localhost:8080/api/v1/interviews`, {
+            method: "PUT",
+            body: requestBody,
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + localStorage.getItem("token"),
+            },
+        });
+
+        if (res.ok) {
+            setIsSuccess(true);
+            setIsError(false);
+            setIsSubmitClicked(false);
+            setTimeout(() => {
+                setIsSuccess(false);
+                router.push('/interviews/interviews');
+            }, 3000);
+        } else {
+            setIsError(true);
+        }
     }
 
     return (
@@ -229,8 +253,13 @@ export default function EditInterview() {
                             <label htmlFor="searchQuery">Candidate</label>
                             <Select
                                 value={candidatesOptions.value}
-                                defaultValue={candidatesOptions.find(candidateOption => candidateOption.value === state.candidate.id)}
+                                defaultValue={{
+                                    value: state.candidate.id,
+                                    label: `${state.candidate.firstName} ${state.candidate.lastName}`
+                                }}
                                 options={candidatesOptions}
+                                isSearchable
+                                onInputChange={handleSearchInputChangeCandidate}
                                 onChange={handleCandidateChange}
                                 name="searchCandidate"
                                 id="searchTitle"
@@ -240,14 +269,35 @@ export default function EditInterview() {
                         <div>Loading Candidates...</div>
                     )}
 
+                    {!employeesLoading && state.users.map(item => item).length > 0 ? (
+                        <div className="form-group">
+                            <label htmlFor="searchQuery">Employees</label>
+                            <Select
+                                value={employeesOptions.value}
+                                defaultValue={state.users.map(item => ({
+                                    value: item.id,
+                                    label: `${item.firstname} ${item.lastname}`
+                                }))}
+                                options={employeesOptions}
+                                onChange={handleEmployeeChange}
+                                onInputChange={handleSearchInputChangeEmployee}
+                                isSearchable={true}
+                                isMulti={true}
+                                name="searchEmployee"
+                                id="searchEmployee"
+                                components={makeAnimated()}
+                            />
+                        </div>
+                    ) : (
+                        <div>Loading Employees...</div>
+                    )}
                     <div className="form-group">
                         <label htmlFor="interviewDate">Interview Date</label>
                         <div>
                             <DatePicker
-                                defaultValue={state.date}
-                                selected={state.interviewDate}
-                                onChange={handleDateChange}
-                                dateFormat="P"
+                                selected={state.dateTime ? new Date(state.dateTime) : null}
+                                onChange={handleDateTimeChange}
+                                dateFormat="yyyy-MM-dd"
                                 name="interviewDate"
                                 className="form-control"
                             />
@@ -255,28 +305,11 @@ export default function EditInterview() {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="searchQuery">Employees</label>
-                        <Select
-                            selected={state.employees}
-                            options={employees.map((employee) => ({
-                                value: employee.id,
-                                label: `${employee.firstname} ${employee.lastname}`,
-                            }))}
-                            onChange={handleEmployeeChange}
-                            isSearchable={true}
-                            isMulti={true}
-                            name="searchEmployee"
-                            id="searchEmployee"
-                            components={makeAnimated()}
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="startTime">Start Time</label>
+                        <label htmlFor="startTime">Time</label>
                         <div>
                             <DatePicker
-                                selected={state.startTime || null}
-                                onChange={handleTimeChange}
+                                selected={state.dateTime ? new Date(state.dateTime) : null}
+                                onChange={handleDateTimeChange}
                                 showTimeSelect
                                 showTimeSelectOnly
                                 timeIntervals={15}

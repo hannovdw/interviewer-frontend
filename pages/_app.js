@@ -18,9 +18,9 @@ export default function App({ Component, pageProps }) {
     return (
         <>
 
-                {showHeader && <Header />}
-                <Component {...pageProps} />
-                <Footer />
+            {showHeader && <Header />}
+            <Component {...pageProps} />
+            <Footer />
 
         </>
     )

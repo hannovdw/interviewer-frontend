@@ -117,7 +117,7 @@ export default function Interview() {
             <div className="card mx-auto" style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '10px' }}>
                 <div className="card-body text-center">
                     <h3 className="card-title">{interview.title?.titleName || "Not Available"}</h3>
-                    <h4 className="card-title">{interview.date} - {interview.time}</h4>
+                    <h4 className="card-title">{new Date(interview.dateTime).toLocaleDateString()} - {new Date(interview.dateTime).toLocaleTimeString()}</h4>
                     <hr />
                     <ul className="list-group">
                         <h5 className="card-title">Candidate Information</h5>

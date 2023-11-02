@@ -15,9 +15,7 @@ export default function AddInterview() {
 
   const [state, setState] = useState({
     title: {},
-    interviewDate: new Date(),
-    startTime: new Date(),
-    endTime: new Date(),
+    dateTime: "",
     candidateId: {},
     employees: []
   });
@@ -58,7 +56,7 @@ export default function AddInterview() {
 
   async function fetchEmployeesByQuery(query) {
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/users?page=0&size=10`, {
+      const response = await fetch(`http://localhost:8080/api/v1/users/search?query=${query}&page=0&size=10`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -80,6 +78,11 @@ export default function AddInterview() {
   function handleSearchInputChangeCandidate(event) {
     setSearchQuery(event);
     fetchCandidatesByQuery(event);
+  }
+
+  function handleSearchInputChangeEmployee(event) {
+    setSearchQuery(event);
+    fetchEmployeesByQuery(event);
   }
 
   async function fetchTitles() {
@@ -104,16 +107,8 @@ export default function AddInterview() {
   }
 
 
-  function handleDateChange(date) {
-    setState({ ...state, interviewDate: date });
-  }
-
-  function handleStartTimeChange(date) {
-    setState({ ...state, startTime: date });
-  }
-
-  function handleEndTimeChange(date) {
-    setState({ ...state, endTime: date });
+  function handleDateTimeChange(dateTime) {
+    setState({ ...state, dateTime: dateTime });
   }
 
   function handleTitleChange(selectedTitle) {
@@ -129,27 +124,28 @@ export default function AddInterview() {
     setState({ ...state, employees: selectedEmployees });
   }
 
+
+
   async function handleSubmit() {
-    const { interviewDate, startTime, title, candidate, employees } = state;
 
-    // Format date and time
-    const date = interviewDate.toISOString().split('T')[0];
-    const time = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const { dateTime, title, candidate, employees } = state;
 
-    // Create the JSON body
-    const requestBody = {
-      date,
-      time,
-      title: { id: title.value }, // Assuming title is an object with a "value" property
-      candidate: { id: candidate.value }, // Assuming candidate is an object with a "value" property
-      users: employees.map((employee) => ({ id: employee.value })), // Map selected employees to an array of objects
-    };
+    const requestBody = JSON.stringify({
+      "dateTime": dateTime,
+      "title": {
+        "id": title.value
+      },
+      "candidate": {
+        "id": candidate.value
+      },
+      "users": employees.map((employee) => ({ id: employee.value }))
+    });
 
     console.log(requestBody)
 
     const res = await fetch(`http://localhost:8080/api/v1/interviews`, {
       method: "POST",
-      body: JSON.stringify(requestBody),
+      body: requestBody,
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + localStorage.getItem("token"),
@@ -227,6 +223,7 @@ export default function AddInterview() {
               name="searchEmployee"
               id="searchEmployee"
               components={makeAnimated()} // Enable multi-select and other animations
+              onInputChange={handleSearchInputChangeEmployee}// Add this line for live search
             />
           </div>
 
@@ -234,8 +231,8 @@ export default function AddInterview() {
             <label htmlFor="interviewDate">Interview Date</label>
             <div>
               <DatePicker
-                selected={state.interviewDate}
-                onChange={handleDateChange}
+                selected={state.dateTime ? new Date(state.dateTime) : null}
+                onChange={handleDateTimeChange}
                 dateFormat="P"
                 name="interviewDate"
                 className="form-control"
@@ -244,32 +241,16 @@ export default function AddInterview() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="startTime">Start Time</label>
+            <label htmlFor="endTime">Time</label>
             <div>
               <DatePicker
-                selected={state.startTime}
-                onChange={handleStartTimeChange}
+                selected={state.dateTime ? new Date(state.dateTime) : null}
+                onChange={handleDateTimeChange}
                 showTimeSelect
                 showTimeSelectOnly
                 timeIntervals={15}
                 dateFormat="h:mm aa"
-                name="startTime"
-                className="form-control"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="endTime">End Time</label>
-            <div>
-              <DatePicker
-                selected={state.endTime}
-                onChange={handleEndTimeChange}
-                showTimeSelect
-                showTimeSelectOnly
-                timeIntervals={15}
-                dateFormat="h:mm aa"
-                name="endTime"
+                name="time"
                 className="form-control"
               />
             </div>
