@@ -1,92 +1,51 @@
 import { useRouter } from "next/router";
-import Link from "next/link";
-import { AiOutlinePlus } from 'react-icons/ai';
 import { useState, useEffect } from "react";
-import { Form, Dropdown } from "react-bootstrap";
 import Alert from "react-bootstrap/Alert";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import Spinner from "react-bootstrap/Spinner";
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
+import Link from "next/link";
+import { AiOutlineArrowLeft } from 'react-icons/ai';
 
 
 export default function AddInterview() {
+
   const router = useRouter();
 
-  const [state, setState] = useState({
-    title: {},
+  const [interviewState, setInterviewState] = useState({
+    title: {
+      id: ""
+    },
     dateTime: "",
-    candidateId: {},
-    employees: []
+    candidate: {},
+    employees: [
+    ]
   });
 
-  const [isError, setIsError] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [titles, setTitles] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitClicked, setIsSubmitClicked] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [candidates, setCandidates] = useState([]);
   const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
     fetchTitles();
-    fetchCandidatesByQuery(searchQuery);
-    fetchEmployeesByQuery(searchQuery);
-  }, [searchQuery]);
+    fetchCandidates();
+    fetchEmployees();
+  }, []);
 
-  async function fetchCandidatesByQuery(query) {
-    try {
-      const response = await fetch(`http://localhost:8080/api/v1/candidates/search?query=${query}&page=0&size=10`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + localStorage.getItem("token"),
-        },
-      });
+  async function fetchCandidates(query = "", page = 0, size = 10) {
 
-      if (response.ok) {
-        const data = await response.json();
-        setCandidates(data.content); // Assuming the response contains an array of candidates
-      } else {
-        console.error("Error fetching candidates");
-      }
-    } catch (error) {
-      console.error("Error fetching candidates", error);
-    }
-  }
+    setIsLoading(true);
 
-  async function fetchEmployeesByQuery(query) {
-    try {
-      const response = await fetch(`http://localhost:8080/api/v1/users/search?query=${query}&page=0&size=10`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + localStorage.getItem("token"),
-        },
-      });
+    const endpoint = `http://localhost:8080/api/v1/candidates/search/abbreviated?query=${query}&page=${page}&size=${size}`;
 
-      if (response.ok) {
-        const data = await response.json();
-        setEmployees(data.content);
-      } else {
-        console.error("Error fetching employees");
-      }
-    } catch (error) {
-      console.error("Error fetching employees", error);
-    }
-  }
-
-  function handleSearchInputChangeCandidate(event) {
-    setSearchQuery(event);
-    fetchCandidatesByQuery(event);
-  }
-
-  function handleSearchInputChangeEmployee(event) {
-    setSearchQuery(event);
-    fetchEmployeesByQuery(event);
-  }
-
-  async function fetchTitles() {
-    const res = await fetch(`http://localhost:8080/api/v1/titles`, {
+    const response = await fetch(endpoint, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -94,56 +53,172 @@ export default function AddInterview() {
       },
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      setTitles(data);
+    if (response.ok) {
+      const data = await response.json();
+      var candidateOptions = data.content.map((candidate) => ({
+        value: candidate.id,
+        label: `${candidate.firstName} ${candidate.lastName}`,
+      }))
+      setCandidates(candidateOptions);
       setIsError(false);
-      setTimeout(() => {
-        setIsSuccess(false);
-      }, 3000);
     } else {
-      setIsError(true);
+      if (response.status === 403) {
+        router.push('/login');
+      } else {
+        setIsError(true);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error fetching candidates.");
+        }
+      }
+    }
+
+    setIsLoading(false);
+  }
+
+  async function fetchEmployees(query = "", page = 0, size = 10) {
+
+    setIsLoading(true);
+
+    const endpoint = `http://localhost:8080/api/v1/users/search/abbreviated?query=${query}&page=${page}&size=${size}`;
+
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("token"),
+      },
+    });
+
+    if (response.ok) {
+
+      const data = await response.json();
+      var employeeOptions = data.content.map((employee) => ({
+        value: employee.id,
+        label: `${employee.firstName} ${employee.lastName}`,
+      }))
+      setEmployees(employeeOptions);
+      setIsError(false);
+    } else {
+      if (response.status === 403) {
+        router.push('/login');
+      } else {
+        setIsError(true);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error fetching employees.");
+        }
+      }
+    }
+
+    setIsLoading(false);
+
+  }
+
+  function handleSearchInputChangeCandidate(event) {
+    fetchCandidates(event);
+  }
+
+  function handleSearchInputChangeEmployee(event) {
+    fetchEmployees(event);
+  }
+
+  async function fetchTitles() {
+
+    setIsLoading(true);
+
+    const response = await fetch(`http://localhost:8080/api/v1/titles`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      var titleOptions = data.map((title) => ({
+        value: title.id,
+        label: title.titleName
+      }))
+      setTitles(titleOptions);
+    } else {
+      if (response.status === 403) {
+        router.push('/login');
+      } else {
+        setIsError(true);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error fetching titles.");
+        }
+      }
     }
   }
 
 
   function handleDateTimeChange(dateTime) {
-    setState({ ...state, dateTime: dateTime });
+    setInterviewState({ ...interviewState, dateTime: dateTime });
   }
 
   function handleTitleChange(selectedTitle) {
-    console.log(selectedTitle)
-    setState({ ...state, title: selectedTitle });
+    const newTitle = { id: selectedTitle.value }
+    setInterviewState({ ...interviewState, title: newTitle });
   }
 
   function handleCandidateChange(selectedCandidate) {
-    setState({ ...state, candidate: selectedCandidate });
+    const newCandidate = { id: selectedCandidate.value }
+    setInterviewState({ ...interviewState, candidate: newCandidate });
   }
 
   function handleEmployeeChange(selectedEmployees) {
-    setState({ ...state, employees: selectedEmployees });
+    const newEmployees = selectedEmployees.map(employee => ({ id: employee.value }));
+    setInterviewState({ ...interviewState, employees: newEmployees });
   }
 
+  function handleSearchInputChangeCandidate(event) {
+    fetchCandidates(event);
+  }
 
+  function handleSearchInputChangeEmployee(event) {
+    fetchEmployees(event);
+  }
 
   async function handleSubmit() {
 
-    const { dateTime, title, candidate, employees } = state;
+    setIsLoading(true);
+
+    setIsSubmitClicked(true);
+
+    if (
+      interviewState.dateTime === "" ||
+      interviewState.title.id === "" ||
+      interviewState.candidate.id === "" ||
+      interviewState.employees.length === 0
+    ) {
+      setIsError(true);
+      setError("Please enter required fields.");
+      setIsLoading(false);
+      return;
+    }
 
     const requestBody = JSON.stringify({
-      "dateTime": dateTime,
+      "dateTime": interviewState.dateTime,
       "title": {
-        "id": title.value
+        "id": interviewState.title.id
       },
       "candidate": {
-        "id": candidate.value
+        "id": interviewState.candidate.id
       },
-      "users": employees.map((employee) => ({ id: employee.value }))
+      "users": interviewState.employees.map((employee) => ({ id: employee.id }))
     });
 
-    console.log(requestBody)
-
-    const res = await fetch(`http://localhost:8080/api/v1/interviews`, {
+    const response = await fetch(`http://localhost:8080/api/v1/interviews`, {
       method: "POST",
       body: requestBody,
       headers: {
@@ -152,151 +227,160 @@ export default function AddInterview() {
       },
     });
 
-    if (res.ok) {
+    if (response.ok) {
       setIsSuccess(true);
       setIsError(false);
+      setIsSubmitClicked(false);
       setTimeout(() => {
         setIsSuccess(false);
-      }, 3000);
+        router.push('/interviews/interviews');
+      }, 2000);
     } else {
-      setIsError(true);
+      if (response.status === 403) {
+        router.push('/login');
+      } else {
+        setIsError(true);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error adding Interview.");
+        }
+      }
     }
+
+    setIsLoading(false);
   }
 
   return (
-    <div>
-      <br />
-      <br />
 
-      <div className="col-md-3 m-auto Auth-form-container border">
-        <div className="Auth-form-content p-5 bg-light">
-          <div className="form-group mt-3">
-            <h2 className="text-center">Add Interview</h2>
-            <br />
+    <div className="p-5 " style={{ backgroundColor: '#eee', minHeight: '100vh' }}>
+
+      <div>
+        <Link href="/interviews/interviews">
+          <button className="btn btn-outline-secondary mx-4">
+            <AiOutlineArrowLeft />
+            Back
+          </button>
+        </Link>
+      </div>
+
+      <div className=" p-5 m-auto col-md-4">
+        <div className="p-4 bg-light rounded border border-secondary">
+
+          <div className="col text-center mt-1 text-secondary">
+            <h3>Add Interview</h3>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="searchQuery">Position</label>
-            <Select
-              value={state.title}
-              options={titles.map((title) => ({
-                value: title.id, // Assuming title.id is the ID of the title
-                label: title.titleName,
-              }))}
-              onChange={handleTitleChange}
-              isClearable={true}
-              name="searchTitle"
-              id="searchTitle"
-            />
-          </div>
+          <br />
+          {isLoading && (
+            <div className="text-center">
+              <Spinner animation="border" variant="primary" /> Loading...
+            </div>
+          )}
+          <br />
 
-          <div className="form-group">
-            <label htmlFor="searchQuery">Candidate</label>
+          <label>Candidate</label>
+          <div className={`form-group ${isSubmitClicked && (!interviewState.candidate.id || interviewState.candidate.id === "") ? 'border border-danger rounded' : ''}`}>
             <Select
-              selected={state.candidate}
-              options={candidates.map((candidate) => ({
-                value: candidate.id,
-                label: `${candidate.firstName} ${candidate.lastName}`,
-              }))}
+              placeholder="Candidate"
+              selected={interviewState.candidate}
+              options={candidates}
               onChange={handleCandidateChange}
-              isClearable={true} // Allow clearing the selection
-              isSearchable={true} // Enable search functionality
-              name="searchCandidate"
-              id="searchCandidate"
-              components={makeAnimated()} // Enable multi-select and other animations
-              onInputChange={handleSearchInputChangeCandidate}// Add this line for live search
+              isSearchable={true}
+              components={makeAnimated()}
+              onInputChange={handleSearchInputChangeCandidate}
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="searchQuery">Employees</label>
+          <label className="mt-3">Employees</label>
+          <div className={`form-group ${isSubmitClicked && (!interviewState.employees || interviewState.employees.length === 0) ? 'border border-danger rounded' : ''}`}>
             <Select
-              selected={state.employees}
-              options={employees.map((employee) => ({
-                value: employee.id,
-                label: `${employee.firstname} ${employee.lastname}`,
-              }))}
+              placeholder="Employees"
+              selected={interviewState.employees}
+              options={employees}
               onChange={handleEmployeeChange}
-              isClearable={true} // Allow clearing the selection
-              isSearchable={true} // Enable search functionality
-              isMulti={true} // Allow multiple selections
-              name="searchEmployee"
-              id="searchEmployee"
-              components={makeAnimated()} // Enable multi-select and other animations
-              onInputChange={handleSearchInputChangeEmployee}// Add this line for live search
+              isClearable={true}
+              isSearchable={true}
+              isMulti={true}
+              components={makeAnimated()}
+              onInputChange={handleSearchInputChangeEmployee}
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="interviewDate">Interview Date</label>
+          <label className="mt-3">Position</label>
+          <div className={`form-group ${isSubmitClicked && interviewState.title.id < 1 ? 'border border-danger rounded' : ''}`}>
+            <Select
+              placeholder="Position"
+              value={interviewState.title ? titles.find(title => title.value === interviewState.title.id) : null}
+              options={titles}
+              onChange={handleTitleChange}
+            />
+          </div>
+
+          <div className="mt-3">
+            <label htmlFor="searchQuery">Date</label>
             <div>
               <DatePicker
-                selected={state.dateTime ? new Date(state.dateTime) : null}
+                selected={interviewState.dateTime ? new Date(interviewState.dateTime) : null}
+                placeholderText="Select a date"
                 onChange={handleDateTimeChange}
+                placeholder="Date"
                 dateFormat="P"
                 name="interviewDate"
-                className="form-control"
+                className={`form-control ${isSubmitClicked && !interviewState.dateTime ? 'border-danger' : ''}`}
+                style={{ borderColor: isSubmitClicked && !interviewState.dateTime ? "red" : "" }}
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="endTime">Time</label>
+            <label className="mt-3" htmlFor="searchQuery">Time</label>
             <div>
               <DatePicker
-                selected={state.dateTime ? new Date(state.dateTime) : null}
+                selected={interviewState.dateTime ? new Date(interviewState.dateTime) : null}
+                placeholderText="Select a date"
                 onChange={handleDateTimeChange}
                 showTimeSelect
                 showTimeSelectOnly
                 timeIntervals={15}
                 dateFormat="h:mm aa"
                 name="time"
-                className="form-control"
+                className={`form-control ${isSubmitClicked && !interviewState.dateTime ? 'border-danger' : ''}`}
+                style={{ borderColor: isSubmitClicked && !interviewState.dateTime ? "red" : "" }}
               />
             </div>
           </div>
 
-          {/* Add other input fields for firstName, lastName, email, and cellphoneNumber here */}
 
-          <div className="d-grid gap-2 mt-3">
-            <br />
+          <div className="d-grid mt-3">
             <button type="submit" className="btn btn-primary" onClick={handleSubmit}>
               Add
             </button>
           </div>
 
-          <div className="d-grid gap-2 mt-3">
-            <br />
-            <button
-              className="btn btn-secondary"
-              onClick={() => router.push("/interviews/interviews")}
-            >
-              Back to Interviews
-            </button>
-          </div>
-
           {isSuccess && (
-            <Alert key={"success"} variant={"success"}>
-              <h6 className="text-center">Success</h6>
-            </Alert>
+            <div>
+              <br />
+              <Alert key={'success'} variant={'success'}>
+                <h6 className="text-center">Success</h6>
+              </Alert>
+            </div>
           )}
 
           {isError && (
-            <Alert key={"error"} variant={"danger"}>
-              <h6 className="text-center">Error</h6>
-            </Alert>
+            <div>
+              <br />
+              <Alert key={'error'} variant={'danger'}>
+                <h6 className="text-center">{error}</h6>
+              </Alert>
+            </div>
           )}
+
         </div>
       </div>
-      <style jsx>{`
-        .form-group {
-          margin-bottom: 15px;
-        }
-        .date-time-group {
-          display: flex;
-          justify-content: space-between;
-        }
-      `}</style>
     </div>
+
+
   );
 }

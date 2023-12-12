@@ -3,6 +3,7 @@ import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import { useRouter } from "next/router"
+import Image from "next/image";
 
 export default function Header(props) {
 
@@ -15,37 +16,42 @@ export default function Header(props) {
 
   return (
 
-    <Navbar collapseOnSelect expand="lg" className="bg-body-tertiary">
+    <Navbar collapseOnSelect expand="lg" className="bg-body-tertiary border">
 
       <Container>
 
-        <Navbar.Brand href="/overview">Interviewer</Navbar.Brand>
+        <Navbar.Brand href="/calendar">
+          <div className="col text-center">
+            <Image
+              src="/../public/logo1.png"
+              width={300}
+              height={100}
+              alt="Logo"
+              className="img-fluid center-block"
+            />
+          </div></Navbar.Brand>
         <Navbar.Toggle aria-controls="responsive-navbar-nav" />
 
         <Navbar.Collapse id="responsive-navbar-nav">
 
-          <Nav className="me-auto">
+          <Nav className="h5 me-auto">
 
-            <Nav.Link href="/overview">Overview</Nav.Link>
+            <Nav.Link href="/calendar">Calendar</Nav.Link>
             <Nav.Link href="/interviews/interviews">Interviews</Nav.Link>
             <Nav.Link href="/candidates/candidates">Candidates</Nav.Link>
             <Nav.Link href="/employees/employees">Employees</Nav.Link>
             <Nav.Link href="/overview">Templates</Nav.Link>
 
-            {/* <NavDropdown title="Interviews" id="collasible-nav-dropdown">
-              <NavDropdown.Item href="/">Create Interview</NavDropdown.Item>
-              <NavDropdown.Item href="/interview">View Interviews </NavDropdown.Item>
-            </NavDropdown> */}
 
           </Nav>
 
           <Nav>
-            <NavDropdown title="Profile" id="collasible-nav-dropdown">
-              <NavDropdown.Item href="#action/3.1">My Profile</NavDropdown.Item>
-              <NavDropdown.Item href="#action/3.3">Settings</NavDropdown.Item>
+            <NavDropdown title="Profile" className='h5' id="collasible-nav-dropdown">
+              <NavDropdown.Item href="#action/3.1"><h6>My Profile</h6></NavDropdown.Item>
+              <NavDropdown.Item href="#action/3.3"><h6>Settings</h6></NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item onClick={signOut}>Sign Out</NavDropdown.Item>
-              <NavDropdown.Item href="#action/3.4">Help</NavDropdown.Item>
+              <NavDropdown.Item onClick={signOut}><h6>Sign Out</h6></NavDropdown.Item>
+              <NavDropdown.Item href="#action/3.4"><h6>Help</h6></NavDropdown.Item>
             </NavDropdown>
           </Nav>
 

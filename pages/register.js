@@ -1,8 +1,9 @@
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import Image from "next/image";
 import Alert from 'react-bootstrap/Alert';
 import Select from 'react-select';
+import Spinner from "react-bootstrap/Spinner";
 
 export default function Register() {
 
@@ -13,6 +14,7 @@ export default function Register() {
     lastName: "",
     email: "",
     cellNumber: "",
+    address: "",
     password: "",
     titleId: "",
     role: "ADMIN"
@@ -24,6 +26,7 @@ export default function Register() {
   const [titles, setTitles] = useState([]);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitClicked, setIsSubmitClicked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchTitles();
@@ -46,23 +49,44 @@ export default function Register() {
   }
 
   async function fetchTitles() {
-    const res = await fetch(`http://localhost:8080/api/v1/titles`, {
+
+    setIsLoading(true);
+
+    const response = await fetch(`http://localhost:8080/api/v1/titles`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      setTitles(data);
+    if (response.ok) {
+      const data = await response.json();
+      var titleOptions = data.map((title) => ({
+        value: title.id,
+        label: title.titleName
+      }))
+      setTitles(titleOptions);
     } else {
-      setIsError(true);
-      setError("Error fetching titles")
+      if (response.status === 403) {
+        router.push('/login');
+      } else {
+        setIsError(true);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error fetching titles.");
+        }
+      }
     }
+
+    setIsLoading(false);
+
   }
 
   async function handleSubmit() {
+
+    setIsLoading(true);
 
     setIsSubmitClicked(true);
 
@@ -73,9 +97,11 @@ export default function Register() {
       userState.password.trim() === "" ||
       userState.cellNumber.trim() === "" ||
       userState.titleId < 1 ||
+      userState.address.trim() === "" ||
       confirmPassword.trim() === ""
     ) {
       setIsError(true);
+      setIsLoading(false);
       setError("Please enter required fields.");
       return;
     }
@@ -87,7 +113,9 @@ export default function Register() {
 
     } else {
 
-      const res = await fetch(`http://localhost:8080/api/v1/auth/register`, {
+      console.log(JSON.stringify(userState))
+
+      const response = await fetch(`http://localhost:8080/api/v1/auth/register`, {
         method: "POST",
         body: JSON.stringify(userState),
         headers: {
@@ -95,7 +123,7 @@ export default function Register() {
         }
       });
 
-      if (res.ok) {
+      if (response.ok) {
 
         setIsError(false);
         setIsSuccess(true);
@@ -107,19 +135,25 @@ export default function Register() {
 
       } else {
 
-        const responseBody = await res.json();
         setIsError(true);
-        setError(responseBody.error);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error registering.");
+        }
 
       }
 
     }
 
+    setIsLoading(false);
+
   }
 
   return (
     <div className="p-5 bg-light " style={{ minHeight: '100vh' }}>
-      <div className=" p-5 m-auto col-md-3">
+      <div className=" p-5 m-auto col-md-4">
         <div className="p-4 bg-light rounded border border-secondary">
 
           <div className="col text-center">
@@ -132,8 +166,16 @@ export default function Register() {
             />
           </div>
 
+          <br />
+          {isLoading && (
+            <div className="text-center">
+              <Spinner animation="border" variant="primary" /> Loading...
+            </div>
+          )}
+          <br />
+
           <div className="col text-center mt-1 text-secondary">
-            <h3>Signup</h3>
+            <h3>Sign Up</h3>
           </div>
 
           <div className="form-group mt-3">
@@ -170,19 +212,26 @@ export default function Register() {
             <input
               name="cellNumber"
               className="form-control mt-1"
-              placeholder="Mobile Number"
+              placeholder="Cell Number"
               onChange={handleChange}
               style={{ borderColor: isSubmitClicked && userState.cellNumber.trim() === "" ? "red" : "" }}
+            />
+          </div>
+
+          <div className="form-group mt-3">
+            <input
+              name="address"
+              className="form-control mt-1"
+              placeholder="Address"
+              onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && userState.address.trim() === "" ? "red" : "" }}
             />
           </div>
 
           <div className={`form-group mt-3 ${isSubmitClicked && userState.titleId < 1 ? 'border border-danger rounded' : ''}`}>
             <Select
               value={userState.title}
-              options={titles.map((title) => ({
-                value: title.id,
-                label: title.titleName,
-              }))}
+              options={titles}
               placeholder="Title"
               onChange={handleTitleChange}
             />
@@ -215,6 +264,8 @@ export default function Register() {
               Sign Up
             </button>
           </div>
+
+          <br />
 
           <div className="text-center">
             <p>Already a member? <a href="/login">Sign In</a></p>

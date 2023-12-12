@@ -1,84 +1,122 @@
 import { useRouter } from "next/router";
 import { useState } from "react";
 import Image from "next/image";
+import Spinner from "react-bootstrap/Spinner";
 
 export default function SignIn() {
+
   const router = useRouter();
 
-  const [state, setState] = useState({
+  const [loginState, setLoginState] = useState({
     email: "",
     password: ""
   });
 
   const [isError, setIsError] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitClicked, setIsSubmitClicked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
 
   function handleChange(e) {
-    const copy = { ...state };
+    const copy = { ...loginState };
     copy[e.target.name] = e.target.value;
-    setState(copy);
+    setLoginState(copy);
   }
 
   async function authenticate() {
-    const res = await fetch(`http://localhost:8080/api/v1/auth/authenticate`, {
+
+    setIsLoading(true);
+
+    setIsSubmitClicked(true);
+
+    if (
+      loginState.email.trim() === "" ||
+      loginState.password.trim() === ""
+    ) {
+      setIsLoading(false);
+      setIsError(true);
+      setError("Please enter required fields.");
+      return;
+
+    }
+
+    const response = await fetch(`http://localhost:8080/api/v1/auth/authenticate`, {
       method: "POST",
-      body: JSON.stringify(state),
+      body: JSON.stringify(loginState),
       headers: {
         "Content-Type": "application/json"
       }
     });
 
-    if (res.ok) {
-      const json = await res.json();
-      localStorage.setItem("token", json.access_token);
-      setIsError(false); // Clear any previous errors
-      // Redirect directly to the overview page on successful login
-      router.push("/overview");
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem("token", data.access_token);
+      router.push("/calendar");
+
     } else {
-      setIsError(true); // Set an error flag
+      setIsError(true);
+      if (response.status === 403) {
+        setError("Incorrect Username or Password.");
+      } else {
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error fetching titles.");
+        }
+      }
     }
+
+    setIsLoading(false);
+
   }
 
   return (
-    <div>
-      <br />
-      <br />
-      <div className="col-md-3 m-auto Auth-form-container border">
-        <div className="Auth-form-content p-5 bg-light">
-          <div className="container">
-            <div className="row">
-              <div className="col text-center">
-                <Image
-                  src="/../public/logolong.png"
-                  width={300}
-                  height={100}
-                  alt="Logo"
-                  className="img-fluid center-block"
-                />
-              </div>
-            </div>
+    <div className="p-5" style={{ minHeight: '100vh' }}>
+      <div className=" p-5 m-auto col-md-4">
+        <div className="p-4 bg-light rounded border border-secondary">
+
+          <div className="col text-center">
+            <Image
+              src="/../public/logo1.png"
+              width={300}
+              height={100}
+              alt="Logo"
+              className="img-fluid center-block"
+            />
           </div>
+
           <br />
-          <div className="form-group">
-            <label>Email address</label>
+          {isLoading && (
+            <div className="text-center">
+              <Spinner animation="border" variant="primary" /> Loading...
+            </div>
+          )}
+          <br />
+
+          <div className="col text-center mt-1 text-secondary">
+            <h3>Log In</h3>
+          </div>
+
+          <div className="form-group mt-3">
             <input
-              type="email"
               name="email"
               className="form-control mt-1"
-              placeholder="Enter email"
-              value={state.email}
+              placeholder="Email"
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && loginState.email.trim() === "" ? "red" : "" }}
             />
           </div>
 
           <div className="form-group mt-3">
-            <label>Password</label>
             <input
               type="password"
               name="password"
               className="form-control mt-1"
-              placeholder="Enter password"
-              value={state.password}
+              placeholder="Password"
               onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && loginState.password.trim() === "" ? "red" : "" }}
             />
           </div>
 
@@ -94,10 +132,9 @@ export default function SignIn() {
             <p>Not a member? <a href="/register">Register</a></p>
           </div>
 
-          {/* Error Alert */}
           {isError && (
             <div className="alert alert-danger mt-3">
-              <h6 className="text-center">Bad credentials</h6>
+              <h6 className="text-center">{error}</h6>
             </div>
           )}
         </div>

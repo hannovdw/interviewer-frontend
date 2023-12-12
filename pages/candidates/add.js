@@ -1,150 +1,249 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
-import Modal from "react-bootstrap/Modal";
 import Alert from 'react-bootstrap/Alert';
+import Spinner from "react-bootstrap/Spinner";
+import Select from 'react-select';
 
 export default function AddCandidate() {
+
   const router = useRouter();
 
-  const [state, setState] = useState({
+  const [candidateState, setCandidateState] = useState({
     firstName: "",
     lastName: "",
     email: "",
     cellphoneNumber: "",
+    title: {
+      id: ""
+    },
+    address: ""
   });
 
-  const [initialState] = useState({
+  const [emptyCandidateState] = useState({
     firstName: "",
     lastName: "",
     email: "",
     cellphoneNumber: "",
+    title: {
+      id: ""
+    },
+    address: ""
   });
 
+  const [titles, setTitles] = useState([]);
   const [isError, setIsError] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitClicked, setIsSubmitClicked] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTitles();
+  }, []);
 
   function handleChange(e) {
-    const copy = { ...state };
+    const copy = { ...candidateState };
     copy[e.target.name] = e.target.value;
-    setState(copy);
-    setIsSubmitClicked(false);
+    setCandidateState(copy);
+  }
+
+  function handleTitleChange(selectedTitle) {
+    const newTitle = { id: selectedTitle.value }
+    setCandidateState({ ...candidateState, title: newTitle });
+  }
+
+  async function fetchTitles() {
+
+    setIsLoading(true);
+
+    const response = await fetch(`http://localhost:8080/api/v1/titles`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      var titleOptions = data.map((title) => ({
+        value: title.id,
+        label: title.titleName
+      }))
+      setTitles(titleOptions);
+    } else {
+      if (response.status === 403) {
+        router.push('/login');
+      } else {
+        setIsError(true);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error fetching titles.");
+        }
+      }
+    }
+
+    setIsLoading(false);
+
   }
 
   async function handleSubmit() {
+
+    setIsLoading(true);
+
     setIsSubmitClicked(true);
+
     if (
-      state.firstName.trim() === "" ||
-      state.lastName.trim() === "" ||
-      state.email.trim() === "" ||
-      state.cellphoneNumber.trim() === ""
+      candidateState.firstName.trim() === "" ||
+      candidateState.lastName.trim() === "" ||
+      candidateState.email.trim() === "" ||
+      candidateState.cellphoneNumber.trim() === "" ||
+      candidateState.title.id === "" ||
+      candidateState.address.trim() === ""
     ) {
       setIsError(true);
       setError("Please enter required fields.");
+      setIsLoading(false);
       return;
     }
 
-    const res = await fetch(`http://localhost:8080/api/v1/candidates`, {
+    const requestBody = JSON.stringify({
+      "firstName": candidateState.firstName,
+      "lastName": candidateState.lastName,
+      "email": candidateState.email,
+      "cellphoneNumber": candidateState.cellphoneNumber,
+      "address": candidateState.address,
+      "title": {
+        "id": candidateState.title.id
+      }
+    });
+
+    const response = await fetch(`http://localhost:8080/api/v1/candidates`, {
       method: "POST",
-      body: JSON.stringify(state),
+      body: requestBody,
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + localStorage.getItem("token"),
       },
     });
 
-    if (res.ok) {
+    if (response.ok) {
       setIsSuccess(true);
-      setState(initialState);
+      setCandidateState(emptyCandidateState);
       setIsError(false);
       setIsSubmitClicked(false);
       setTimeout(() => {
         setIsSuccess(false);
-      }, 3000);
+      }, 2000);
     } else {
-      const responseBody = await res.json();
-      setIsError(true);
-      setError(responseBody.error);
+      if (response.status === 403) {
+        router.push('/login');
+      } else {
+        setIsError(true);
+        try {
+          const responseBody = await response.json();
+          setError(responseBody.error);
+        } catch (error) {
+          setError("Error adding candidate.");
+        }
+      }
     }
+
+    setIsLoading(false);
+
   }
 
   return (
-    <div>
-      <br />
-      <br />
 
-      <div className="col-md-3 m-auto Auth-form-container border">
-        <div className="Auth-form-content p-5 bg-light">
-          <div className="form-group mt-3">
-            <h2 className="text-center">Add Candidate</h2>
-            <br />
+    <div className="p-5 " style={{ minHeight: '100vh' }}>
+      <div className=" p-5 m-auto col-md-4">
+        <div className="p-4 bg-light rounded border border-secondary">
+
+          <div className="col text-center mt-1 text-secondary">
+            <h3>Add Candidate</h3>
           </div>
 
-          {/* First Name */}
-          <div className={`form-group mt-3`}>
-            <label>First Name</label>
+          <br />
+          {isLoading && (
+            <div className="text-center">
+              <Spinner animation="border" variant="primary" /> Loading...
+            </div>
+          )}
+          <br />
+
+          <div className="form-group mt-3">
             <input
               name="firstName"
-              className={`form-control mt-1`}
-              placeholder="Enter First Name"
-              value={state.firstName}
+              value={candidateState.firstName}
+              className="form-control mt-1"
+              placeholder="First Name"
               onChange={handleChange}
-              style={{ borderColor: isSubmitClicked && state.firstName.trim() === "" ? "red" : "" }}
+              style={{ borderColor: isSubmitClicked && candidateState.firstName.trim() === "" ? "red" : "" }}
             />
           </div>
 
-          {/* Last Name */}
-          <div className={`form-group mt-3`}>
-            <label>Last Name</label>
+          <div className="form-group mt-3">
             <input
               name="lastName"
-              className={`form-control mt-1`}
-              placeholder="Enter Last Name"
-              value={state.lastName}
+              value={candidateState.lastName}
+              className="form-control mt-1"
+              placeholder="Last Name"
               onChange={handleChange}
-              style={{ borderColor: isSubmitClicked && state.lastName.trim() === "" ? "red" : "" }}
+              style={{ borderColor: isSubmitClicked && candidateState.lastName.trim() === "" ? "red" : "" }}
             />
           </div>
 
-          {/* Email */}
-          <div className={`form-group mt-3`}>
-            <label>Email address</label>
+          <div className="form-group mt-3">
             <input
               type="email"
+              value={candidateState.email}
               name="email"
-              className={`form-control mt-1`}
-              placeholder="Enter email"
-              value={state.email}
+              className="form-control mt-1"
+              placeholder="Email"
               onChange={handleChange}
-              style={{ borderColor: isSubmitClicked && state.email.trim() === "" ? "red" : "" }}
+              style={{ borderColor: isSubmitClicked && candidateState.email.trim() === "" ? "red" : "" }}
             />
           </div>
 
-          {/* Cellphone Number */}
-          <div className={`form-group mt-3`}>
-            <label>Cellphone Number</label>
+          <div className="form-group mt-3">
             <input
               name="cellphoneNumber"
-              className={`form-control mt-1`}
-              placeholder="Enter Cellphone Number"
-              value={state.cellphoneNumber}
+              value={candidateState.cellphoneNumber}
+              className="form-control mt-1"
+              placeholder="Cellphone Number"
               onChange={handleChange}
-              style={{ borderColor: isSubmitClicked && state.cellphoneNumber.trim() === "" ? "red" : "" }}
+              style={{ borderColor: isSubmitClicked && candidateState.cellphoneNumber.trim() === "" ? "red" : "" }}
             />
           </div>
 
-          {/* Submit Button */}
-          <div className="d-grid gap-2 mt-3">
-            <br />
+          <div className="form-group mt-3">
+            <input
+              name="address"
+              value={candidateState.address}
+              className="form-control mt-1"
+              placeholder="Address"
+              onChange={handleChange}
+              style={{ borderColor: isSubmitClicked && candidateState.address.trim() === "" ? "red" : "" }}
+            />
+          </div>
+
+          <div className={`form-group mt-3 ${isSubmitClicked && candidateState.title.id < 1 ? 'border border-danger rounded' : ''}`}>
+            <Select
+              value={candidateState.title ? titles.find(title => title.value === candidateState.title.id) : null}
+              options={titles}
+              placeholder="Current Title"
+              onChange={handleTitleChange}
+            />
+          </div>
+
+          <div className="d-grid mt-3">
             <button type="submit" className="btn btn-primary" onClick={handleSubmit}>
               Add
             </button>
           </div>
 
-
-          {/* Button to go back to /candidates */}
-          <div className="d-grid gap-2 mt-3">
+          <div className="d-grid mt-3">
             <button
               className="btn btn-secondary"
               onClick={() => router.push('/candidates/candidates')}
@@ -153,24 +252,27 @@ export default function AddCandidate() {
             </button>
           </div>
 
-          <br />
-          {/* Success Alert */}
           {isSuccess && (
-            <Alert key={'success'} variant={'success'}>
-              <h6 className="text-center">Success</h6>
-            </Alert>
+            <div>
+              <br />
+              <Alert key={'success'} variant={'success'}>
+                <h6 className="text-center">Success</h6>
+              </Alert>
+            </div>
           )}
 
-          <br />
-          {/* Error Alert */}
           {isError && (
-            <Alert key={'error'} variant={'danger'}>
-              <h6 className="text-center">{error}</h6>
-            </Alert>
+            <div>
+              <br />
+              <Alert key={'error'} variant={'danger'}>
+                <h6 className="text-center">{error}</h6>
+              </Alert>
+            </div>
           )}
 
         </div>
       </div>
     </div>
+
   );
 }
