@@ -5,15 +5,10 @@ import Alert from "react-bootstrap/Alert";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import Spinner from "react-bootstrap/Spinner";
-import Select from 'react-select';
-import makeAnimated from 'react-select/animated';
-import Dropdown from "react-dropdown-select";
 import { AiOutlineEdit, AiOutlineDelete, AiOutlineArrowLeft } from 'react-icons/ai';
 
 export default function Interview() {
-
     const router = useRouter();
-
     const { id } = router.query;
 
     const [interview, setInterview] = useState({});
@@ -23,7 +18,6 @@ export default function Interview() {
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [loading, setLoading] = useState(true);
 
-
     useEffect(() => {
         if (id) {
             fetchInterview();
@@ -31,7 +25,6 @@ export default function Interview() {
     }, [id]);
 
     async function fetchInterview() {
-
         setLoading(true);
 
         const response = await fetch(`http://localhost:8080/api/v1/interviews/${id}`, {
@@ -60,7 +53,6 @@ export default function Interview() {
         }
 
         setLoading(false);
-
     }
 
     const handleDelete = async () => {
@@ -68,9 +60,7 @@ export default function Interview() {
     };
 
     const confirmDelete = async () => {
-
         setLoading(true);
-
         setShowDeleteConfirmation(false);
 
         const response = await fetch(
@@ -88,7 +78,6 @@ export default function Interview() {
             setIsError(false);
             router.push('/interviews/interviews');
         } else {
-
             if (response.status === 403) {
                 router.push('/login');
             } else {
@@ -103,9 +92,7 @@ export default function Interview() {
         }
 
         setLoading(false);
-
     };
-
 
     const cancelDelete = () => {
         setShowDeleteConfirmation(false);
@@ -181,7 +168,8 @@ export default function Interview() {
                                             <p class="mb-0">Time</p>
                                         </div>
                                         <div class="col-sm-9">
-                                            <p class="text-muted mb-0">{new Date(interview.dateTime).toLocaleTimeString()}</p>
+                                            <p class="text-muted mb-0">Start : {new Date(interview.dateTime).toLocaleTimeString()}</p>
+                                            <p class="text-muted mb-0">End : {new Date(interview.endDateTime).toLocaleTimeString()}</p>
                                         </div>
                                     </div>
                                     <hr />
@@ -194,15 +182,57 @@ export default function Interview() {
                                         </div>
                                     </div>
                                     <hr />
+                                    <div>
+                                        {interview.isInPerson ? (
+                                            <>
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <p class="mb-0">Is In Person</p>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <p class="text-muted mb-0">Yes</p>
+                                                    </div>
+                                                </div>
+                                                <hr />
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <p class="mb-0">Address</p>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <p class="text-muted mb-0">{interview.linkAddress}</p>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <p class="mb-0">Is In Person</p>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <p class="text-muted mb-0">No</p>
+                                                    </div>
+                                                </div>
+                                                <hr />
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <p class="mb-0">Meeting URL</p>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <p class="text-muted mb-0">{interview.linkAddress}</p>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <hr />
                                     <div class="row">
                                         <div class="col-sm-3">
                                             <p class="mb-0">Interviewers :</p>
                                             <br />
                                         </div>
-                                        <ul ul className="list-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-
+                                        <ul className="list-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                             {interview.users.map((user) => (
-
                                                 <li key={user.id} className="list-group-item">
                                                     <div className="d-flex justify-content-between align-items-center">
                                                         <div>
@@ -213,53 +243,13 @@ export default function Interview() {
                                                         </div>
                                                     </div>
                                                 </li>
-
                                             ))}
-
                                         </ul>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="">
-
-                                    {/* <div class="card mb-4 mb-md-0">
-                      <div class="card-body">
-                        <h5 class="mb-4">Top Skills</h5>
-                        <p class="mb-1" style={{ width: '150px' }}>SpringBoot</p>
-                        <div class="progress rounded" style={{ height: '5px' }}>
-                          <div class="progress-bar" role="progressbar" style={{ width: '80%' }} aria-valuenow="80"
-                            aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <p class="mt-4 mb-1" style={{ width: '150px' }}>React.js</p>
-                        <div class="progress rounded" style={{ height: '5px' }}>
-                          <div class="progress-bar" role="progressbar" style={{ width: '72%' }} aria-valuenow="72"
-                            aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <p class="mt-4 mb-1" style={{ width: '150px' }}>Java</p>
-                        <div class="progress rounded" style={{ height: '5px' }}>
-                          <div class="progress-bar" role="progressbar" style={{ width: '89%' }} aria-valuenow="89"
-                            aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <p class="mt-4 mb-1" style={{ width: '150px' }}>Docker</p>
-                        <div class="progress rounded" style={{ height: '5px' }}>
-                          <div class="progress-bar" role="progressbar" style={{ width: '55%' }} aria-valuenow="55"
-                            aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <p class="mt-4 mb-1" style={{ width: '150px' }}>Backend API</p>
-                        <div class="progress rounded mb-2" style={{ height: '5px' }}>
-                          <div class="progress-bar" role="progressbar" style={{ width: '66%' }} aria-valuenow="66"
-                            aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                      </div>
-                    </div> */}
 
                                 </div>
-
                             </div>
-
                         </div>
-
                         <Modal show={showDeleteConfirmation} onHide={cancelDelete}>
                             <Modal.Header closeButton>
                                 <Modal.Title>Confirm Delete</Modal.Title>
@@ -286,7 +276,6 @@ export default function Interview() {
                                 </Button>
                             </Modal.Footer>
                         </Modal>
-
                     </div>
                 )}
 

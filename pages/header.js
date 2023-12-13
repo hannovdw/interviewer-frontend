@@ -47,7 +47,7 @@ export default function Header(props) {
 
           <Nav>
             <NavDropdown title="Profile" className='h5' id="collasible-nav-dropdown">
-              <NavDropdown.Item href="#action/3.1"><h6>My Profile</h6></NavDropdown.Item>
+              <NavDropdown.Item href="/profile"><h6>My Profile</h6></NavDropdown.Item>
               <NavDropdown.Item href="#action/3.3"><h6>Settings</h6></NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={signOut}><h6>Sign Out</h6></NavDropdown.Item>

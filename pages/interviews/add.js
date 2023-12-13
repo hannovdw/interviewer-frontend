@@ -9,9 +9,7 @@ import makeAnimated from 'react-select/animated';
 import Link from "next/link";
 import { AiOutlineArrowLeft } from 'react-icons/ai';
 
-
 export default function AddInterview() {
-
   const router = useRouter();
 
   const [interviewState, setInterviewState] = useState({
@@ -19,9 +17,11 @@ export default function AddInterview() {
       id: ""
     },
     dateTime: "",
+    isInPerson: true,
+    linkAddress: "",
+    endDateTime: "",
     candidate: {},
-    employees: [
-    ]
+    employees: [],
   });
 
   const [titles, setTitles] = useState([]);
@@ -40,7 +40,6 @@ export default function AddInterview() {
   }, []);
 
   async function fetchCandidates(query = "", page = 0, size = 10) {
-
     setIsLoading(true);
 
     const endpoint = `http://localhost:8080/api/v1/candidates/search/abbreviated?query=${query}&page=${page}&size=${size}`;
@@ -58,7 +57,7 @@ export default function AddInterview() {
       var candidateOptions = data.content.map((candidate) => ({
         value: candidate.id,
         label: `${candidate.firstName} ${candidate.lastName}`,
-      }))
+      }));
       setCandidates(candidateOptions);
       setIsError(false);
     } else {
@@ -79,11 +78,9 @@ export default function AddInterview() {
   }
 
   async function fetchEmployees(query = "", page = 0, size = 10) {
-
     setIsLoading(true);
 
     const endpoint = `http://localhost:8080/api/v1/users/search/abbreviated?query=${query}&page=${page}&size=${size}`;
-
 
     const response = await fetch(endpoint, {
       method: "GET",
@@ -94,12 +91,11 @@ export default function AddInterview() {
     });
 
     if (response.ok) {
-
       const data = await response.json();
       var employeeOptions = data.content.map((employee) => ({
         value: employee.id,
         label: `${employee.firstName} ${employee.lastName}`,
-      }))
+      }));
       setEmployees(employeeOptions);
       setIsError(false);
     } else {
@@ -117,19 +113,9 @@ export default function AddInterview() {
     }
 
     setIsLoading(false);
-
-  }
-
-  function handleSearchInputChangeCandidate(event) {
-    fetchCandidates(event);
-  }
-
-  function handleSearchInputChangeEmployee(event) {
-    fetchEmployees(event);
   }
 
   async function fetchTitles() {
-
     setIsLoading(true);
 
     const response = await fetch(`http://localhost:8080/api/v1/titles`, {
@@ -144,7 +130,7 @@ export default function AddInterview() {
       var titleOptions = data.map((title) => ({
         value: title.id,
         label: title.titleName
-      }))
+      }));
       setTitles(titleOptions);
     } else {
       if (response.status === 403) {
@@ -161,24 +147,40 @@ export default function AddInterview() {
     }
   }
 
-
   function handleDateTimeChange(dateTime) {
-    setInterviewState({ ...interviewState, dateTime: dateTime });
+    setInterviewState({ ...interviewState, dateTime: dateTime, endDateTime: dateTime });
+  }
+
+  function handleEndDateTimeChange(dateTime) {
+    setInterviewState({ ...interviewState, endDateTime: dateTime });
   }
 
   function handleTitleChange(selectedTitle) {
-    const newTitle = { id: selectedTitle.value }
+    const newTitle = { id: selectedTitle.value };
     setInterviewState({ ...interviewState, title: newTitle });
   }
 
   function handleCandidateChange(selectedCandidate) {
-    const newCandidate = { id: selectedCandidate.value }
+    const newCandidate = { id: selectedCandidate.value };
     setInterviewState({ ...interviewState, candidate: newCandidate });
   }
 
   function handleEmployeeChange(selectedEmployees) {
     const newEmployees = selectedEmployees.map(employee => ({ id: employee.value }));
     setInterviewState({ ...interviewState, employees: newEmployees });
+  }
+
+  function handleLinkAddressChange(event) {
+    setInterviewState({ ...interviewState, linkAddress: event.target.value });
+    console.log(event.target.value);
+  }
+
+
+  function handleRadioChange(event) {
+    setInterviewState({
+      ...interviewState,
+      isInPerson: event.target.value === 'inPerson',
+    });
   }
 
   function handleSearchInputChangeCandidate(event) {
@@ -189,17 +191,21 @@ export default function AddInterview() {
     fetchEmployees(event);
   }
 
+  function handleRadioChange(event) {
+    setIsInPerson(event.target.value === 'inPerson');
+  }
+
   async function handleSubmit() {
-
     setIsLoading(true);
-
     setIsSubmitClicked(true);
 
     if (
       interviewState.dateTime === "" ||
       interviewState.title.id === "" ||
       interviewState.candidate.id === "" ||
-      interviewState.employees.length === 0
+      interviewState.employees.length === 0 ||
+      interviewState.endDateTime === "" ||
+      interviewState.linkAddress === ""
     ) {
       setIsError(true);
       setError("Please enter required fields.");
@@ -207,15 +213,32 @@ export default function AddInterview() {
       return;
     }
 
+    if (new Date(interviewState.endDateTime) <= new Date(interviewState.dateTime)) {
+      setIsError(true);
+      setError("Make sure the end time is after the start time.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (new Date(interviewState.dateTime) < new Date()) {
+      setIsError(true);
+      setError("Interview date cant be in the past.");
+      setIsLoading(false);
+      return;
+    }
+
     const requestBody = JSON.stringify({
       "dateTime": interviewState.dateTime,
+      "endDateTime": interviewState.endDateTime,
       "title": {
         "id": interviewState.title.id
       },
       "candidate": {
         "id": interviewState.candidate.id
       },
-      "users": interviewState.employees.map((employee) => ({ id: employee.id }))
+      "users": interviewState.employees.map((employee) => ({ id: employee.id })),
+      "isInPerson": interviewState.isInPerson,
+      "linkAddress": interviewState.linkAddress
     });
 
     const response = await fetch(`http://localhost:8080/api/v1/interviews`, {
@@ -253,9 +276,7 @@ export default function AddInterview() {
   }
 
   return (
-
-    <div className="p-5 " style={{ backgroundColor: '#eee', minHeight: '100vh' }}>
-
+    <div className="p-5" style={{ backgroundColor: '#eee', minHeight: '100vh' }}>
       <div>
         <Link href="/interviews/interviews">
           <button className="btn btn-outline-secondary mx-4">
@@ -265,9 +286,8 @@ export default function AddInterview() {
         </Link>
       </div>
 
-      <div className=" p-5 m-auto col-md-4">
+      <div className="m-auto col-md-4">
         <div className="p-4 bg-light rounded border border-secondary">
-
           <div className="col text-center mt-1 text-secondary">
             <h3>Add Interview</h3>
           </div>
@@ -293,7 +313,7 @@ export default function AddInterview() {
             />
           </div>
 
-          <label className="mt-3">Employees</label>
+          <label className="mt-1">Employees</label>
           <div className={`form-group ${isSubmitClicked && (!interviewState.employees || interviewState.employees.length === 0) ? 'border border-danger rounded' : ''}`}>
             <Select
               placeholder="Employees"
@@ -308,7 +328,7 @@ export default function AddInterview() {
             />
           </div>
 
-          <label className="mt-3">Position</label>
+          <label className="mt-1">Position</label>
           <div className={`form-group ${isSubmitClicked && interviewState.title.id < 1 ? 'border border-danger rounded' : ''}`}>
             <Select
               placeholder="Position"
@@ -318,7 +338,7 @@ export default function AddInterview() {
             />
           </div>
 
-          <div className="mt-3">
+          <div className="mt-1">
             <label htmlFor="searchQuery">Date</label>
             <div>
               <DatePicker
@@ -335,7 +355,7 @@ export default function AddInterview() {
           </div>
 
           <div className="form-group">
-            <label className="mt-3" htmlFor="searchQuery">Time</label>
+            <label className="mt-1" htmlFor="searchQuery">Start Time</label>
             <div>
               <DatePicker
                 selected={interviewState.dateTime ? new Date(interviewState.dateTime) : null}
@@ -352,6 +372,73 @@ export default function AddInterview() {
             </div>
           </div>
 
+          <div className="form-group">
+            <label className="mt-1" htmlFor="endDateTime">End Time</label>
+            <div>
+              <DatePicker
+                selected={interviewState.endDateTime ? new Date(interviewState.endDateTime) : null}
+                placeholderText="Select end time"
+                onChange={handleEndDateTimeChange}
+                showTimeSelect
+                showTimeSelectOnly
+                timeIntervals={15}
+                dateFormat="h:mm aa"
+                name="endTime"
+                className={`form-control ${isSubmitClicked && (!interviewState.endDateTime || new Date(interviewState.endDateTime) <= new Date(interviewState.dateTime)) ? 'border-danger' : ''}`}
+                style={{ borderColor: isSubmitClicked && (!interviewState.endDateTime || new Date(interviewState.endDateTime) <= new Date(interviewState.dateTime)) ? "red" : "" }}
+              />
+            </div>
+          </div>
+
+          <div className="form-group mt-1">
+            <label>Interview Type</label>
+            <div>
+              <label className="mr-2">
+                <input
+                  type="radio"
+                  value="inPerson"
+                  checked={interviewState.isInPerson}
+                  onChange={handleRadioChange}
+                /> In Person
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  value="virtual"
+                  checked={!interviewState.isInPerson}
+                  onChange={handleRadioChange}
+                /> Virtual
+              </label>
+            </div>
+          </div>
+
+          {interviewState.isInPerson ? (
+            <div>
+              <label>Address</label>
+              <div className={`form-group mt-1 ${isSubmitClicked && interviewState.isInPerson && !interviewState.linkAddress ? 'border border-danger rounded' : ''}`}>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter address"
+                  value={interviewState.linkAddress}
+                  onChange={handleLinkAddressChange}
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label>Meeting URL</label>
+              <div className={`form-group mt-1 ${isSubmitClicked && !interviewState.isInPerson && !interviewState.linkAddress ? 'border border-danger rounded' : ''}`}>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter meeting URL"
+                  value={interviewState.linkAddress}
+                  onChange={handleLinkAddressChange}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="d-grid mt-3">
             <button type="submit" className="btn btn-primary" onClick={handleSubmit}>
@@ -380,7 +467,5 @@ export default function AddInterview() {
         </div>
       </div>
     </div>
-
-
   );
 }

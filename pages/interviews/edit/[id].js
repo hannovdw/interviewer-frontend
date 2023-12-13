@@ -8,7 +8,6 @@ import makeAnimated from 'react-select/animated';
 import Spinner from "react-bootstrap/Spinner";
 import Link from "next/link";
 import { AiOutlineArrowLeft } from 'react-icons/ai';
-import { intervalToDuration } from "date-fns/fp";
 
 export default function EditInterview() {
 
@@ -31,6 +30,9 @@ export default function EditInterview() {
     const [interviewState, setInterviewState] = useState({
         title: {},
         dateTime: "",
+        endDateTime: "",
+        isInPerson: true,
+        linkAddress: "",
         candidate: {},
         users: []
     });
@@ -135,7 +137,7 @@ export default function EditInterview() {
                 value: employee.id,
                 label: `${employee.firstName} ${employee.lastName}`
             }))
-            setEmployees(employees)
+            setEmployees(employees);
             setEmployeesLoading(false);
             setIsError(false);
         } else {
@@ -200,7 +202,8 @@ export default function EditInterview() {
         setIsSubmitClicked(true);
 
         if (
-            !interviewState.users.map(item => item).length > 0
+            !interviewState.users.map(item => item).length > 0 ||
+            interviewState.linkAddress === ""
         ) {
             setIsError(true);
             setError("Please enter required fields.");
@@ -208,8 +211,29 @@ export default function EditInterview() {
             return;
         }
 
+        const startDateTime = new Date(interviewState.dateTime);
+        const endDateTime = new Date(interviewState.endDateTime);
+        console.log(startDateTime);
+        console.log(endDateTime);
+        if (endDateTime <= startDateTime) {
+            setIsError(true);
+            setError("Make sure the end time is after the start time.");
+            setIsLoading(false);
+            return;
+        }
+
+        if (startDateTime <= new Date()) {
+            setIsError(true);
+            setError("Interview date must be in future.");
+            setIsLoading(false);
+            return;
+        }
+
         const requestBody = JSON.stringify({
             "dateTime": interviewState.dateTime,
+            "endDateTime": interviewState.endDateTime,
+            "linkAddress": interviewState.linkAddress,
+            "isInPerson": interviewState.isInPerson,
             "title": {
                 "id": interviewState.title.id
             },
@@ -218,6 +242,8 @@ export default function EditInterview() {
             },
             "users": interviewState.users.map(user => ({ "id": user.id }))
         });
+
+        console.log(interviewState);
 
         const response = await fetch(`http://localhost:8080/api/v1/interviews/${id}`, {
             method: "PUT",
@@ -259,6 +285,10 @@ export default function EditInterview() {
         setInterviewState({ ...interviewState, dateTime: dateTime });
     }
 
+    function handleEndDateTimeChange(dateTime) {
+        setInterviewState({ ...interviewState, endDateTime: dateTime });
+    }
+
     function handleTitleChange(selectedTitle) {
         const newTitle = { id: selectedTitle.value }
         setInterviewState({ ...interviewState, title: newTitle });
@@ -267,6 +297,19 @@ export default function EditInterview() {
     function handleCandidateChange(selectedCandidate) {
         const newCandidate = { id: selectedCandidate.value };
         setInterviewState({ ...interviewState, candidate: newCandidate });
+    }
+
+    function handleLinkAddressChange(event) {
+        setInterviewState({ ...interviewState, linkAddress: event.target.value });
+        console.log(event.target.value);
+    }
+
+
+    function handleRadioChange(event) {
+        setInterviewState({
+            ...interviewState,
+            isInPerson: event.target.value === 'inPerson',
+        });
     }
 
     function handleEmployeeChange(selectedEmployees) {
@@ -304,7 +347,7 @@ export default function EditInterview() {
 
             {!interviewLoading &&
 
-                <div className=" p-5 m-auto col-md-4">
+                <div className="  m-auto col-md-4">
                     <div className="p-4 bg-light rounded border border-secondary">
 
                         <div className="col text-center mt-1 text-secondary">
@@ -404,7 +447,86 @@ export default function EditInterview() {
                             </div>
                         </div>
 
+                        <div className="form-group">
+                            <label htmlFor="interviewDate">End Date</label>
+                            <div>
+                                <DatePicker
+                                    selected={interviewState.endDateTime ? new Date(interviewState.endDateTime) : null}
+                                    onChange={handleEndDateTimeChange}
+                                    dateFormat="yyyy-MM-dd"
+                                    name="interviewDate"
+                                    className="form-control"
+                                />
+                            </div>
+                        </div>
 
+                        <div className="form-group">
+                            <label htmlFor="endDateTime">End Time</label>
+                            <div>
+                                <DatePicker
+                                    selected={interviewState.endDateTime ? new Date(interviewState.endDateTime) : null}
+                                    onChange={handleEndDateTimeChange}
+                                    showTimeSelect
+                                    showTimeSelectOnly
+                                    timeIntervals={15}
+                                    dateFormat="h:mm aa"
+                                    name="endTime"
+                                    className="form-control"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group mt-1">
+                            <label>Interview Type</label>
+                            <div>
+                                <label className="mr-2">
+                                    <input
+                                        type="radio"
+                                        value="inPerson"
+                                        checked={interviewState.isInPerson}
+                                        onChange={handleRadioChange}
+                                    /> In Person
+                                </label>
+                                <span style={{ marginRight: '8px' }}></span>
+                                <label>
+                                    <t />
+                                    <input
+                                        type="radio"
+                                        value="virtual"
+                                        checked={!interviewState.isInPerson}
+                                        onChange={handleRadioChange}
+                                    /> Virtual
+                                </label>
+                            </div>
+                        </div>
+
+                        {interviewState.isInPerson ? (
+                            <div>
+                                <label>Address</label>
+                                <div className={`form-group mt-1 ${isSubmitClicked && interviewState.isInPerson && !interviewState.linkAddress ? 'border border-danger rounded' : ''}`}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Enter address"
+                                        value={interviewState.linkAddress}
+                                        onChange={handleLinkAddressChange}
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <label>Meeting URL</label>
+                                <div className={`form-group mt-1 ${isSubmitClicked && !interviewState.isInPerson && !interviewState.linkAddress ? 'border border-danger rounded' : ''}`}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Enter meeting URL"
+                                        value={interviewState.linkAddress}
+                                        onChange={handleLinkAddressChange}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div className="d-grid mt-3">
                             <button type="submit" className="btn btn-primary" onClick={handleSubmit}>
@@ -421,20 +543,20 @@ export default function EditInterview() {
                             </div>
                         )}
 
+                        {isError && (
+                            <div>
+                                <br />
+                                <Alert key={'error'} variant={'danger'}>
+                                    <h6 className="text-center">{error}</h6>
+                                </Alert>
+                            </div>
+                        )}
+
                     </div>
 
                 </div>
 
             }
-
-            {isError && (
-                <div>
-                    <br />
-                    <Alert key={'error'} variant={'danger'}>
-                        <h6 className="text-center">{error}</h6>
-                    </Alert>
-                </div>
-            )}
 
         </div>
     );

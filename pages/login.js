@@ -52,6 +52,7 @@ export default function SignIn() {
     if (response.ok) {
       const data = await response.json();
       localStorage.setItem("token", data.access_token);
+      localStorage.setItem("userId", data.userId);
       router.push("/calendar");
 
     } else {
